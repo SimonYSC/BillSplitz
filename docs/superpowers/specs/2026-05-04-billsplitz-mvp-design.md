@@ -32,6 +32,8 @@ The current repository is a SwiftUI starter app, not an MVP foundation.
 - The data model does not separate receipt items from assignments or settlement.
 - Tests are scaffolds only.
 
+This spec supersedes the Phase 0 prototype bill list board introduced in PR #1. The Xcode project, targets, and folder structure are kept; the prototype's models, view models, and views will be replaced as part of Day 1.
+
 Recommendation: keep the existing Xcode project, targets, and folder structure, but rebuild most application code inside that shell.
 
 ## Recommended Approach
@@ -81,10 +83,14 @@ Recommendation: Option 1.
 ## Platform and Technical Constraints
 
 - Target platform: iPhone-only native iOS
-- Deployment target: iOS 17+
+- Deployment target: iOS 26.1 (matches the existing Xcode project setting `IPHONEOS_DEPLOYMENT_TARGET = 26.1`)
 - Architecture pattern: MVVM
 - Persistence model: local-first, single-device
 - OCR strategy: on-device OCR only for the MVP, with AI retry reserved for a later version if accuracy proves insufficient
+
+Required Xcode project changes:
+
+- The existing target sets `TARGETED_DEVICE_FAMILY = "1,2,7"` (iPhone, iPad, Vision Pro). For iPhone-only, set this to `"1"` before MVP work begins.
 
 The MVP should not depend on backend infrastructure. It should be able to complete the main flow entirely on-device.
 
@@ -97,7 +103,7 @@ The MVP should not depend on backend infrastructure. It should be able to comple
 - OCR: Vision `VNRecognizeTextRequest`
 - Photo import fallback: PhotosUI
 - Sharing: `ShareLink` or a UIKit share sheet bridge
-- Testing: XCTest and Apple Testing
+- Testing: XCTest and Swift Testing
 
 External dependencies are not recommended for v1 unless a specific gap appears. Avoiding third-party packages keeps setup simple and reduces App Store risk.
 
@@ -203,6 +209,8 @@ Represents the final amount a participant owes.
 
 Fields:
 
+- `id`
+- `sessionID`
 - `participantID`
 - `itemSubtotal`
 - `taxShare`
