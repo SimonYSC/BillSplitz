@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BillSplitz Checkpoint Report - MVP Model Foundation</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --border: #d9dee7;
+      --accent: #1463ff;
+      --code: #eef2f7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111418;
+        --panel: #191e24;
+        --text: #eef2f6;
+        --muted: #a6b0bd;
+        --border: #303844;
+        --accent: #76a7ff;
+        --code: #242b34;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .report-header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    code {
+      background: var(--code);
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94em;
+    }
+
+    pre {
+      overflow-x: auto;
+      background: var(--code);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 0;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .status {
+      color: var(--accent);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="report-header">
+      <h1>MVP Model Foundation</h1>
+      <p class="meta">Checkpoint report generated on 2026-05-16 17:41 EDT.</p>
+      <p class="meta">Branch: <code>codex/mvp-model-foundation</code></p>
+    </div>
+
+    <div class="panel">
+      <h2>Goal</h2>
+      <p>
+        Establish the first real MVP foundation from the design spec: shared project ignore rules,
+        domain models for receipt splitting, and deterministic settlement math that can be tested
+        without UI or persistence.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Diff Summary</h2>
+      <div class="grid">
+        <div class="metric">
+          <strong><code>5656b22</code></strong>
+          <span>Add project ignore rules in <code>.gitignore</code>.</span>
+        </div>
+        <div class="metric">
+          <strong><code>97a10d1</code></strong>
+          <span>Add MVP split models, settlement calculation, and unit tests.</span>
+        </div>
+      </div>
+      <ul>
+        <li><code>.gitignore</code>: ignores <code>.DS_Store</code>, Xcode UI state, and local Claude worktrees.</li>
+        <li><code>BillSplitz/Models/SplitModels.swift</code>: adds <code>SplitSession</code>, <code>Participant</code>, <code>ReceiptItem</code>, <code>ItemAssignment</code>, <code>SplitRulePreset</code>, and <code>SettlementLine</code>.</li>
+        <li><code>BillSplitz/Services/SettlementCalculator.swift</code>: allocates item totals, tax, and tip by participant share with cent reconciliation.</li>
+        <li><code>BillSplitzTests/BillSplitzTests.swift</code>: replaces the placeholder test with money-math coverage.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Testing</h2>
+      <p class="status">Passed</p>
+      <pre><code>xcodebuild test \
+  -project BillSplitz.xcodeproj \
+  -scheme BillSplitz \
+  -destination id=FF670818-7F37-45AB-8485-E0C108175070 \
+  -derivedDataPath /private/tmp/BillSplitzDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  -only-testing:BillSplitzTests</code></pre>
+      <ul>
+        <li>Verified that equal splitting of a 10.00 item reconciles to exactly 10.00 after cent rounding.</li>
+        <li>Verified that tax and tip allocate by each participant's item subtotal.</li>
+        <li>Verified that unassigned receipt items fail settlement calculation instead of producing silent totals.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Flagged Concerns</h2>
+      <ul>
+        <li>The new models are plain Swift structs, not SwiftData models yet. That is intentional for testable math, but persistence still needs its own pass.</li>
+        <li>The current SwiftUI screens still use the old prototype <code>Item</code> and <code>User</code> types. UI migration is the next major breakpoint.</li>
+        <li>The calculator currently requires explicit assignments for every receipt item. The split rule engine should create default assignments before settlement runs.</li>
+        <li>Only unit tests were added. OCR, receipt review, persistence, and UI flow remain unimplemented.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>
