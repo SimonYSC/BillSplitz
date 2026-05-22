@@ -229,6 +229,16 @@
       color: var(--amber-ink);
     }
 
+    .tag.selected {
+      background: var(--blue);
+      color: white;
+    }
+
+    .tag.muted {
+      background: #edf0f5;
+      color: #667085;
+    }
+
     .tag.ok {
       background: var(--mint);
       color: var(--mint-ink);
@@ -1050,7 +1060,7 @@
               <div class="split-card">
                 <div class="split-row">
                   <span class="avatar">M</span>
-                  <div><div class="row-title">Spicy tuna roll</div><div class="row-sub">Assign or split</div></div>
+                  <div><div class="row-title">Spicy tuna roll</div><div class="row-sub">Assigned to Alex</div></div>
                   <span class="price">$25.90</span>
                 </div>
                 <div class="segmented">
@@ -1059,9 +1069,9 @@
                   <span class="segment">Share</span>
                 </div>
                 <div class="tag-row">
-                  <span class="tag">Alex</span>
-                  <span class="tag alt">Ben</span>
-                  <span class="tag alt">Casey</span>
+                  <span class="tag selected">Alex ✓</span>
+                  <span class="tag muted">Ben</span>
+                  <span class="tag muted">Casey</span>
                 </div>
               </div>
               <div class="split-card">
@@ -1069,6 +1079,11 @@
                   <span class="avatar violet">D</span>
                   <div><div class="row-title">Mochi</div><div class="row-sub">Shared by everyone · preset</div></div>
                   <span class="price">$7.50</span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag ok">Alex</span>
+                  <span class="tag ok">Ben</span>
+                  <span class="tag ok">Casey</span>
                 </div>
               </div>
             </div>
@@ -1092,6 +1107,7 @@
                 <li>Assigned: one participant gets the full item.</li>
                 <li>Split: selected participants get equal shares.</li>
                 <li>Shared: all participants get equal shares.</li>
+                <li>Badges show recipients: blue means assigned, green means included in a shared split, and gray means available but not selected.</li>
               </ul>
             </div>
             <div class="detail">

@@ -41,6 +41,7 @@ Key product decisions:
 - Plain-text sharing is required; image-card sharing is optional polish.
 - Settlement must fail visibly when an item is unassigned.
 - All math must reconcile to the receipt total after cent rounding.
+- Split Board badges must have clear meaning: blue means assigned, green means included in a shared split, and gray means available but not selected.
 
 High-fidelity visual artifact:
 
