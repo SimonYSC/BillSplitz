@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BillSplitz MVP User Flow</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f7fb;
+      --ink: #18202b;
+      --muted: #687386;
+      --panel: #ffffff;
+      --line: #d8dee9;
+      --navy: #18324f;
+      --blue: #1f6feb;
+      --sky: #dceaff;
+      --mint: #dff6ea;
+      --mint-ink: #14633c;
+      --amber: #fff0c7;
+      --amber-ink: #7a4f00;
+      --rose: #ffe3e7;
+      --rose-ink: #842029;
+      --violet: #eee7ff;
+      --violet-ink: #4c2a91;
+      --surface: #f9fafc;
+      --shadow: 0 20px 50px rgba(20, 30, 50, 0.12);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 40px 22px 80px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+      gap: 22px;
+      align-items: stretch;
+      margin-bottom: 22px;
+    }
+
+    .hero-copy,
+    .summary-panel,
+    .panel,
+    .screen-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 0 rgba(20, 30, 50, 0.03);
+    }
+
+    .hero-copy {
+      padding: 28px;
+    }
+
+    .eyebrow {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(34px, 5vw, 56px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: 24px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 720px;
+    }
+
+    .summary-panel {
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .summary-row {
+      display: grid;
+      gap: 4px;
+    }
+
+    .label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    code {
+      background: #eef2f8;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    .flow-map {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 22px;
+    }
+
+    .flow-map-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: start;
+      padding: 20px 22px 0;
+    }
+
+    .flow-map-head p {
+      color: var(--muted);
+    }
+
+    .flow-lanes {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(148px, 1fr));
+      gap: 14px;
+      overflow-x: auto;
+      padding: 22px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 180px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .stage:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -15px;
+      width: 15px;
+      height: 2px;
+      background: var(--blue);
+    }
+
+    .stage-num {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--navy);
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .stage h3 {
+      min-height: 44px;
+    }
+
+    .stage p {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--sky);
+      color: #15457d;
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .tag.alt {
+      background: var(--amber);
+      color: var(--amber-ink);
+    }
+
+    .tag.ok {
+      background: var(--mint);
+      color: var(--mint-ink);
+    }
+
+    .tag.warn {
+      background: var(--rose);
+      color: var(--rose-ink);
+    }
+
+    .section-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .screen-card {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      gap: 22px;
+      padding: 22px;
+      align-items: start;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto;
+      background: #12151b;
+      border-radius: 34px;
+      padding: 12px;
+      box-shadow: 0 18px 42px rgba(18, 21, 27, 0.25);
+    }
+
+    .phone-screen {
+      min-height: 640px;
+      background: #f9fafc;
+      border-radius: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 18px;
+      color: #202733;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .app-bar {
+      padding: 12px 18px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #edf0f5;
+      background: white;
+    }
+
+    .app-title {
+      font-size: 18px;
+      font-weight: 760;
+    }
+
+    .icon-button,
+    .small-button {
+      min-width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #d8dee9;
+      display: inline-grid;
+      place-items: center;
+      color: #20324a;
+      background: white;
+      font-weight: 800;
+    }
+
+    .small-button {
+      min-width: auto;
+      padding: 0 10px;
+      font-size: 12px;
+      color: var(--blue);
+    }
+
+    .screen-content {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      flex: 1;
+      align-content: start;
+    }
+
+    .hero-card {
+      background: var(--navy);
+      color: white;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .hero-card .sub {
+      color: rgba(255, 255, 255, 0.72);
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .primary-button,
+    .secondary-button {
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 760;
+    }
+
+    .primary-button {
+      background: var(--blue);
+      color: white;
+    }
+
+    .secondary-button {
+      background: white;
+      border: 1px solid #d8dee9;
+      color: #20324a;
+    }
+
+    .form-card,
+    .list-card,
+    .receipt-card,
+    .summary-card,
+    .split-card {
+      background: white;
+      border: 1px solid #e2e7ef;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label {
+      color: #667085;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .input {
+      min-height: 38px;
+      border: 1px solid #d8dee9;
+      border-radius: 8px;
+      padding: 9px 10px;
+      color: #1f2937;
+      background: #fbfcfe;
+      font-size: 14px;
+    }
+
+    .person-row,
+    .receipt-row,
+    .split-row,
+    .settle-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #edf0f5;
+    }
+
+    .person-row:last-child,
+    .receipt-row:last-child,
+    .split-row:last-child,
+    .settle-row:last-child {
+      border-bottom: 0;
+    }
+
+    .avatar {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--sky);
+      color: #15457d;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .avatar.green {
+      background: var(--mint);
+      color: var(--mint-ink);
+    }
+
+    .avatar.violet {
+      background: var(--violet);
+      color: var(--violet-ink);
+    }
+
+    .avatar.gold {
+      background: var(--amber);
+      color: var(--amber-ink);
+    }
+
+    .row-title {
+      overflow-wrap: anywhere;
+      font-size: 14px;
+      font-weight: 720;
+    }
+
+    .row-sub {
+      color: #667085;
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .price {
+      color: #1f2937;
+      font-weight: 760;
+      font-size: 14px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background: #eef2f7;
+      border-radius: 10px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .segment {
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #667085;
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .segment.active {
+      background: white;
+      color: var(--blue);
+      box-shadow: 0 1px 2px rgba(18, 32, 51, 0.08);
+    }
+
+    .scan-box {
+      min-height: 250px;
+      border: 2px dashed #b6c2d2;
+      border-radius: 16px;
+      background:
+        linear-gradient(90deg, transparent 0 18px, rgba(31, 111, 235, 0.06) 18px 20px, transparent 20px),
+        linear-gradient(#ffffff, #f6f9ff);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .receipt-paper {
+      width: 190px;
+      min-height: 260px;
+      margin: 0 auto;
+      background: white;
+      border: 1px solid #d8dee9;
+      box-shadow: 0 10px 22px rgba(18, 32, 51, 0.12);
+      padding: 18px 14px;
+      color: #334155;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+    }
+
+    .receipt-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 4px 0;
+      border-bottom: 1px dotted #d8dee9;
+    }
+
+    .confidence {
+      height: 8px;
+      border-radius: 999px;
+      background: #e7ebf2;
+      overflow: hidden;
+    }
+
+    .confidence > span {
+      display: block;
+      height: 100%;
+      background: var(--blue);
+    }
+
+    .bottom-nav {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid #edf0f5;
+      background: white;
+    }
+
+    .nav-item {
+      min-height: 54px;
+      display: grid;
+      place-items: center;
+      color: #667085;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .nav-item.active {
+      color: var(--blue);
+    }
+
+    .details {
+      display: grid;
+      gap: 14px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .detail {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .detail ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .detail li + li {
+      margin-top: 5px;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .decision {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .decision p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .timeline-row strong {
+      color: var(--blue);
+    }
+
+    .timeline-row p {
+      color: var(--muted);
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .screen-card,
+      .decision-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .screen-card {
+        padding: 18px;
+      }
+
+      .phone {
+        max-width: 340px;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .page {
+        max-width: none;
+        padding: 16px;
+      }
+
+      .screen-card,
+      .flow-map,
+      .panel,
+      .summary-panel,
+      .hero-copy {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">BillSplitz MVP</div>
+        <h1>High-Fidelity User Flow</h1>
+        <p class="lead">
+          A single-device iPhone workflow for moving from a receipt to a shareable settlement.
+          The flow prioritizes manual correction, clear split ownership, and local recovery over automation.
+        </p>
+      </div>
+      <div class="summary-panel">
+        <div class="summary-row">
+          <span class="label">Source</span>
+          <span><code>docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md</code></span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Primary Actor</span>
+          <span>One payer splitting a shared meal or group receipt on one iPhone.</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Core Promise</span>
+          <span>Scan, correct, assign, calculate, and share who owes what.</span>
+        </div>
+        <div class="summary-row">
+          <span class="label">Implementation Strategy</span>
+          <span>Build editable manual flow first, then route OCR into receipt review.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-map">
+      <div class="flow-map-head">
+        <div>
+          <h2>Primary Value Path</h2>
+          <p>Each stage maps to a focused screen/view model boundary in the MVP.</p>
+        </div>
+        <div class="tag-row">
+          <span class="tag ok">local-first</span>
+          <span class="tag">SwiftUI</span>
+          <span class="tag">SwiftData</span>
+          <span class="tag alt">OCR optional input</span>
+        </div>
+      </div>
+      <div class="flow-lanes">
+        <div class="stage">
+          <div class="stage-num">1</div>
+          <h3>Start or Resume</h3>
+          <p>Create a split or continue the active local session.</p>
+          <div class="tag-row"><span class="tag ok">recoverable</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">2</div>
+          <h3>Session Setup</h3>
+          <p>Add participants, optional payment handles, and default split preset.</p>
+          <div class="tag-row"><span class="tag">participants</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">3</div>
+          <h3>Capture Receipt</h3>
+          <p>Scan, import a photo, or skip to manual item entry.</p>
+          <div class="tag-row"><span class="tag alt">permission path</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">4</div>
+          <h3>Review Items</h3>
+          <p>Edit OCR output, add missing lines, categorize items, and set tax/tip.</p>
+          <div class="tag-row"><span class="tag warn">correction-heavy</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">5</div>
+          <h3>Apply Preset</h3>
+          <p>Pre-split appetizers and desserts, leave mains/drinks for assignment.</p>
+          <div class="tag-row"><span class="tag">rule engine</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">6</div>
+          <h3>Split Board</h3>
+          <p>Assign one item, split among selected people, or share with everyone.</p>
+          <div class="tag-row"><span class="tag ok">overrideable</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">7</div>
+          <h3>Settlement</h3>
+          <p>Calculate subtotal, tax, tip, and grand total per participant.</p>
+          <div class="tag-row"><span class="tag">cent rounding</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-num">8</div>
+          <h3>Share</h3>
+          <p>Share plain text first; add screenshot card if time allows.</p>
+          <div class="tag-row"><span class="tag ok">no payment API</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Key Decisions</h2>
+      <div class="decision-grid">
+        <div class="decision">
+          <h3>Manual Is First-Class</h3>
+          <p>OCR accelerates entry but never owns the workflow. Users must be able to finish a split by typing items manually.</p>
+        </div>
+        <div class="decision">
+          <h3>One Active Session</h3>
+          <p>The MVP can persist one current split well. A session list/history can wait until the core loop is stable.</p>
+        </div>
+        <div class="decision">
+          <h3>Share Text Before Image</h3>
+          <p>A reliable text summary is more important than a polished share card. The card is a stretch layer.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-grid">
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">BillSplitz</span>
+              <span class="icon-button">?</span>
+            </div>
+            <div class="screen-content">
+              <div class="hero-card">
+                <h3>Split a receipt in minutes</h3>
+                <p class="sub">Create a local session, review the items, and share totals.</p>
+              </div>
+              <div class="primary-button">New Split</div>
+              <div class="secondary-button">Continue Sushi Night</div>
+              <div class="list-card">
+                <div class="row-title">Last session</div>
+                <div class="row-sub">4 people · 9 items · splitting items</div>
+              </div>
+              <div class="list-card">
+                <div class="row-title">No account required</div>
+                <div class="row-sub">Everything stays on this device.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>1. Start or Resume</h2>
+            <p>The user either starts a new bill or resumes the one active local split. This screen prevents accidental loss if the app is closed mid-meal.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Primary Actions</span>
+              <ul>
+                <li>Create a new split session.</li>
+                <li>Continue the latest unfinished session.</li>
+                <li>Discard old active session after confirmation.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">State Contract</span>
+              <ul>
+                <li>Reads active <code>SplitSession</code>.</li>
+                <li>Routes by <code>SplitSessionStatus</code>.</li>
+                <li>Does not show long-term history in MVP.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">New Split</span>
+              <span class="small-button">Next</span>
+            </div>
+            <div class="screen-content">
+              <div class="form-card">
+                <div class="field">
+                  <span class="field-label">Title</span>
+                  <div class="input">Sushi Night</div>
+                </div>
+                <div class="field">
+                  <span class="field-label">Default preset</span>
+                  <div class="segmented">
+                    <span class="segment active">Meal</span>
+                    <span class="segment">Even</span>
+                    <span class="segment">Manual</span>
+                  </div>
+                </div>
+              </div>
+              <div class="list-card">
+                <div class="person-row">
+                  <span class="avatar">A</span>
+                  <div><div class="row-title">Alex</div><div class="row-sub">@alex · Venmo</div></div>
+                  <span class="price">Edit</span>
+                </div>
+                <div class="person-row">
+                  <span class="avatar green">B</span>
+                  <div><div class="row-title">Ben</div><div class="row-sub">ben@email.com · Zelle</div></div>
+                  <span class="price">Edit</span>
+                </div>
+                <div class="person-row">
+                  <span class="avatar violet">C</span>
+                  <div><div class="row-title">Casey</div><div class="row-sub">No handle</div></div>
+                  <span class="price">Edit</span>
+                </div>
+              </div>
+              <div class="secondary-button">Add participant</div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>2. Session Setup</h2>
+            <p>The user names the split, adds participants, and selects the default split behavior. Payment handles are optional because payment APIs are out of scope.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Validation</span>
+              <ul>
+                <li>Require at least two participant names to continue.</li>
+                <li>Allow duplicate prevention by trimmed display name.</li>
+                <li>Payment handles can be blank.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Writes</span>
+              <ul>
+                <li><code>SplitSession.title</code></li>
+                <li><code>Participant</code> records</li>
+                <li>Selected <code>SplitRulePreset</code></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">Receipt</span>
+              <span class="small-button">Skip</span>
+            </div>
+            <div class="screen-content">
+              <div class="scan-box">
+                <div>
+                  <div style="font-size:48px; line-height:1;">▣</div>
+                  <div class="row-title">Place receipt in frame</div>
+                  <div class="row-sub">Edges auto-detect when possible.</div>
+                </div>
+              </div>
+              <div class="primary-button">Scan Receipt</div>
+              <div class="secondary-button">Import Photo</div>
+              <div class="secondary-button">Enter Items Manually</div>
+              <div class="list-card">
+                <div class="row-title">Camera permission needed</div>
+                <div class="row-sub">Photo import remains available if camera is denied.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>3. Capture Receipt</h2>
+            <p>The user can scan with VisionKit, import a receipt image, or bypass OCR. The bypass keeps the MVP useful even before OCR is reliable.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Services</span>
+              <ul>
+                <li><code>ReceiptScanService</code> wraps document camera.</li>
+                <li>PhotosUI handles import fallback.</li>
+                <li>Receipt image reference is stored locally.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Fallbacks</span>
+              <ul>
+                <li>Denied camera: show import and manual entry.</li>
+                <li>No receipt photo: continue to manual review.</li>
+                <li>Scanner cancelled: return without losing session.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">Review Items</span>
+              <span class="small-button">Next</span>
+            </div>
+            <div class="screen-content">
+              <div class="receipt-card">
+                <div class="receipt-row">
+                  <span class="avatar gold">A</span>
+                  <div><div class="row-title">Gyoza</div><div class="row-sub">Appetizer · qty 1</div></div>
+                  <span class="price">$8.95</span>
+                </div>
+                <div class="receipt-row">
+                  <span class="avatar">M</span>
+                  <div><div class="row-title">Spicy tuna roll</div><div class="row-sub">Main · qty 2</div></div>
+                  <span class="price">$25.90</span>
+                </div>
+                <div class="receipt-row">
+                  <span class="avatar violet">D</span>
+                  <div><div class="row-title">Mochi</div><div class="row-sub">Dessert · low confidence</div></div>
+                  <span class="price">$7.50</span>
+                </div>
+              </div>
+              <div class="form-card">
+                <div class="field">
+                  <span class="field-label">Tax</span>
+                  <div class="input">$3.72</div>
+                </div>
+                <div class="field">
+                  <span class="field-label">Tip</span>
+                  <div class="segmented">
+                    <span class="segment">18%</span>
+                    <span class="segment active">20%</span>
+                    <span class="segment">Custom</span>
+                  </div>
+                </div>
+              </div>
+              <div class="secondary-button">Add missing item</div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>4. Review and Correct</h2>
+            <p>The receipt review screen is the control point for OCR errors. Users can edit line names, prices, quantities, categories, tax, tip, fees, and discounts before splitting.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">User Edits</span>
+              <ul>
+                <li>Rename item and fix price.</li>
+                <li>Change category for preset behavior.</li>
+                <li>Delete noise lines from OCR.</li>
+                <li>Add missed items manually.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Data Output</span>
+              <ul>
+                <li>Clean <code>ReceiptItem</code> records.</li>
+                <li>Session subtotal, tax, and tip.</li>
+                <li>Review status moves to splitting.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">Split Board</span>
+              <span class="small-button">Settle</span>
+            </div>
+            <div class="screen-content">
+              <div class="split-card">
+                <div class="split-row">
+                  <span class="avatar gold">A</span>
+                  <div><div class="row-title">Gyoza</div><div class="row-sub">Shared by everyone · preset</div></div>
+                  <span class="price">$8.95</span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag ok">Alex</span>
+                  <span class="tag ok">Ben</span>
+                  <span class="tag ok">Casey</span>
+                </div>
+              </div>
+              <div class="split-card">
+                <div class="split-row">
+                  <span class="avatar">M</span>
+                  <div><div class="row-title">Spicy tuna roll</div><div class="row-sub">Assign or split</div></div>
+                  <span class="price">$25.90</span>
+                </div>
+                <div class="segmented">
+                  <span class="segment active">Assign</span>
+                  <span class="segment">Split</span>
+                  <span class="segment">Share</span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">Alex</span>
+                  <span class="tag alt">Ben</span>
+                  <span class="tag alt">Casey</span>
+                </div>
+              </div>
+              <div class="split-card">
+                <div class="split-row">
+                  <span class="avatar violet">D</span>
+                  <div><div class="row-title">Mochi</div><div class="row-sub">Shared by everyone · preset</div></div>
+                  <span class="price">$7.50</span>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">Setup</div>
+              <div class="nav-item">Review</div>
+              <div class="nav-item active">Split</div>
+              <div class="nav-item">Settle</div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>5. Split Board</h2>
+            <p>The board shows each cleaned item and its current allocation. Presets prefill common cases, but every item remains overrideable.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Interaction Model</span>
+              <ul>
+                <li>Assigned: one participant gets the full item.</li>
+                <li>Split: selected participants get equal shares.</li>
+                <li>Shared: all participants get equal shares.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Implementation Notes</span>
+              <ul>
+                <li><code>SplitRuleEngine</code> creates default assignments.</li>
+                <li><code>ItemAssignment.shareRatio</code> stores split weights.</li>
+                <li>Block settlement while required items are unassigned.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">Settlement</span>
+              <span class="small-button">Share</span>
+            </div>
+            <div class="screen-content">
+              <div class="summary-card">
+                <div class="row-title">Receipt total</div>
+                <div class="row-sub">Subtotal $42.35 · Tax $3.72 · Tip $8.47</div>
+                <h2 style="margin-top:10px;">$54.54</h2>
+              </div>
+              <div class="summary-card">
+                <div class="settle-row">
+                  <span class="avatar">A</span>
+                  <div><div class="row-title">Alex owes</div><div class="row-sub">Items $18.70 · tax $1.64 · tip $3.74</div></div>
+                  <span class="price">$24.08</span>
+                </div>
+                <div class="settle-row">
+                  <span class="avatar green">B</span>
+                  <div><div class="row-title">Ben owes</div><div class="row-sub">Items $15.20 · tax $1.34 · tip $3.04</div></div>
+                  <span class="price">$19.58</span>
+                </div>
+                <div class="settle-row">
+                  <span class="avatar violet">C</span>
+                  <div><div class="row-title">Casey owes</div><div class="row-sub">Items $8.45 · tax $0.74 · tip $1.69</div></div>
+                  <span class="price">$10.88</span>
+                </div>
+              </div>
+              <div class="list-card">
+                <div class="row-title">Totals reconcile</div>
+                <div class="row-sub">Per-person totals add back to $54.54.</div>
+              </div>
+            </div>
+            <div class="bottom-nav">
+              <div class="nav-item">Setup</div>
+              <div class="nav-item">Review</div>
+              <div class="nav-item">Split</div>
+              <div class="nav-item active">Settle</div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>6. Settlement</h2>
+            <p>The settlement screen translates assignments into per-person totals. It must make the math legible enough that users trust the result before sharing.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Calculator Rules</span>
+              <ul>
+                <li>Round item shares, tax, and tip to cents.</li>
+                <li>Allocate any remainder to the largest pre-rounded share.</li>
+                <li>Fail if required items have no assignment.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Expected Tests</span>
+              <ul>
+                <li>Existing <code>SettlementCalculator</code> tests stay green.</li>
+                <li>Add coverage for service fees and discounts.</li>
+                <li>Smoke test happy path through settlement.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="screen-card">
+        <div class="phone">
+          <div class="phone-screen">
+            <div class="status-bar"><span>9:41</span><span>5G 100%</span></div>
+            <div class="app-bar">
+              <span class="app-title">Share</span>
+              <span class="small-button">Done</span>
+            </div>
+            <div class="screen-content">
+              <div class="receipt-paper">
+                <div style="text-align:center; font-weight:800; margin-bottom:10px;">Sushi Night</div>
+                <div class="receipt-line"><span>Alex</span><span>$24.08</span></div>
+                <div class="receipt-line"><span>Ben</span><span>$19.58</span></div>
+                <div class="receipt-line"><span>Casey</span><span>$10.88</span></div>
+                <div class="receipt-line"><span>Total</span><span>$54.54</span></div>
+                <div style="margin-top:12px;">Paid by Simon</div>
+                <div>@simon-pay</div>
+              </div>
+              <div class="primary-button">Share summary</div>
+              <div class="secondary-button">Copy text</div>
+              <div class="secondary-button">Save image card</div>
+            </div>
+          </div>
+        </div>
+        <div class="details">
+          <div>
+            <h2>7. Share Output</h2>
+            <p>The user sends a clear summary through any messaging app. Plain text is the MVP requirement; a visual card is a polish layer if time remains.</p>
+          </div>
+          <div class="detail-grid">
+            <div class="detail">
+              <span class="label">Plain Text Format</span>
+              <ul>
+                <li>Session title and payer.</li>
+                <li>Each participant's total.</li>
+                <li>Optional payment handle.</li>
+                <li>Receipt total reconciliation note.</li>
+              </ul>
+            </div>
+            <div class="detail">
+              <span class="label">Out of Scope</span>
+              <ul>
+                <li>No Venmo/Zelle/Cash App API requests.</li>
+                <li>No accounts or shared editing.</li>
+                <li>No cloud receipt storage.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Error and Recovery Paths</h2>
+      <div class="timeline">
+        <div class="timeline-row">
+          <strong>Camera denied</strong>
+          <p>Show photo import and manual entry. The app remains usable without camera permission.</p>
+        </div>
+        <div class="timeline-row">
+          <strong>OCR weak</strong>
+          <p>Send raw lines to review with low-confidence labels. Never skip the review step.</p>
+        </div>
+        <div class="timeline-row">
+          <strong>Missing item</strong>
+          <p>User adds a manual receipt line in review. It behaves like an OCR-derived item after save.</p>
+        </div>
+        <div class="timeline-row">
+          <strong>Unassigned item</strong>
+          <p>Settlement button shows which items still need assignment and returns user to the split board.</p>
+        </div>
+        <div class="timeline-row">
+          <strong>App closed</strong>
+          <p>SwiftData reloads the active session, participants, items, and assignments on next launch.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Implementation Mapping</h2>
+      <div class="detail-grid">
+        <div class="detail">
+          <span class="label">View Models</span>
+          <ul>
+            <li><code>SessionSetupViewModel</code>: title, participants, preset.</li>
+            <li><code>ReceiptCaptureViewModel</code>: scan/import/manual routing.</li>
+            <li><code>ReceiptReviewViewModel</code>: editable items, subtotal, tax, tip.</li>
+            <li><code>SplitBoardViewModel</code>: assignment state and preset overrides.</li>
+            <li><code>SettlementViewModel</code>: totals and share output.</li>
+          </ul>
+        </div>
+        <div class="detail">
+          <span class="label">Services</span>
+          <ul>
+            <li><code>SessionRepository</code>: SwiftData persistence.</li>
+            <li><code>ReceiptOCRService</code>: Vision text recognition.</li>
+            <li><code>ReceiptParserService</code>: raw text to editable candidate items.</li>
+            <li><code>SplitRuleEngine</code>: default assignments.</li>
+            <li><code>ShareExportService</code>: text and optional image card.</li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">Next build step: implement the app foundation and manual-session flow before wiring OCR.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Checkpoint Notes</h2>
+      <div class="detail-grid">
+        <div class="detail">
+          <span class="label">Goal</span>
+          <ul>
+            <li>Create a high-fidelity user-flow reference before app UI implementation.</li>
+            <li>Align screens, services, persistence, and error paths to the MVP spec.</li>
+          </ul>
+        </div>
+        <div class="detail">
+          <span class="label">Files</span>
+          <ul>
+            <li><code>docs/flows/2026-05-22-billsplitz-mvp-user-flow.html</code></li>
+            <li><code>docs/flows/2026-05-22-billsplitz-mvp-user-flow.md</code></li>
+          </ul>
+        </div>
+        <div class="detail">
+          <span class="label">Validation</span>
+          <ul>
+            <li>HTML parsed with <code>xmllint --html --noout</code>.</li>
+            <li>No app code changed in this checkpoint.</li>
+          </ul>
+        </div>
+        <div class="detail">
+          <span class="label">Concerns</span>
+          <ul>
+            <li>Actual SwiftUI layouts still need simulator review on small iPhones.</li>
+            <li>OCR confidence UI may change after real receipt testing.</li>
+            <li>Image-card sharing remains optional until the text share path works.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
