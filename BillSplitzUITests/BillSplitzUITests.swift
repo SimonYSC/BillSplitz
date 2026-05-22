@@ -23,12 +23,31 @@ final class BillSplitzUITests: XCTestCase {
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testNavigatesMVPFlowShell() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+        app.buttons["start-new-split-button"].tap()
+        XCTAssertTrue(app.staticTexts["Session Setup"].waitForExistence(timeout: 2))
+
+        let nextButton = app.buttons["flow-next-button"]
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Receipt Capture"].waitForExistence(timeout: 2))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Receipt Review"].waitForExistence(timeout: 2))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Split Board"].waitForExistence(timeout: 2))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Settlement"].waitForExistence(timeout: 2))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Share"].waitForExistence(timeout: 2))
+
+        nextButton.tap()
+        XCTAssertTrue(app.buttons["start-new-split-button"].waitForExistence(timeout: 2))
     }
 
     @MainActor

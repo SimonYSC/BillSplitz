@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BillSplitz Checkpoint Report - Breakpoint 1 App Foundation</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --text: #17202a;
+      --muted: #5f6b7a;
+      --border: #d9dee7;
+      --accent: #1463ff;
+      --code: #eef2f7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111418;
+        --panel: #191e24;
+        --text: #eef2f6;
+        --muted: #a6b0bd;
+        --border: #303844;
+        --accent: #76a7ff;
+        --code: #242b34;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .report-header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 20px;
+      letter-spacing: 0;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 0;
+      padding-left: 22px;
+    }
+
+    li + li {
+      margin-top: 6px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 16px 0;
+    }
+
+    code {
+      background: var(--code);
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.94em;
+    }
+
+    pre {
+      overflow-x: auto;
+      background: var(--code);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 0;
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .status {
+      color: var(--accent);
+      font-weight: 650;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="report-header">
+      <h1>Breakpoint 1: App Foundation</h1>
+      <p class="meta">Checkpoint report generated on 2026-05-22 18:00 EDT.</p>
+      <p class="meta">Branch: <code>main</code></p>
+    </div>
+
+    <div class="panel">
+      <h2>Goal</h2>
+      <p>
+        Replace the placeholder launch screen with a real MVP flow shell that is iPhone-only,
+        simulator-testable, and ready for SwiftData session persistence in Breakpoint 2.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>Diff Summary</h2>
+      <div class="grid">
+        <div class="metric">
+          <strong>App Target</strong>
+          <span>Limited the app and test configurations to iPhone and iPhone Simulator builds.</span>
+        </div>
+        <div class="metric">
+          <strong>Flow Shell</strong>
+          <span>Added start/resume, setup, capture, review, split, settlement, and share screens.</span>
+        </div>
+        <div class="metric">
+          <strong>Verification</strong>
+          <span>Added unit coverage for routing state and a UI test that taps through the full shell.</span>
+        </div>
+      </div>
+      <ul>
+        <li><code>BillSplitz.xcodeproj/project.pbxproj</code>: changes target family from iPhone/iPad/Vision to iPhone and removes macOS/xROS destinations.</li>
+        <li><code>BillSplitz/Views/ContentView.swift</code>: replaces the placeholder with the app flow navigation stack.</li>
+        <li><code>BillSplitz/ViewModels/AppFlowViewModel.swift</code>: adds the in-memory route model, active draft session stub, resume behavior, and step transitions.</li>
+        <li><code>BillSplitz/Views/AppFlowScreens.swift</code>: adds the start screen and six MVP step screens with static review data.</li>
+        <li><code>BillSplitzTests/AppFlowViewModelTests.swift</code>: covers start, advance, resume, and finish behavior.</li>
+        <li><code>BillSplitzUITests/BillSplitzUITests.swift</code>: replaces the empty launch test with a tap-through flow-shell test.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Testing</h2>
+      <p class="status">Passed</p>
+      <pre><code>xcodebuild test \
+  -project BillSplitz.xcodeproj \
+  -scheme BillSplitz \
+  -destination id=FF670818-7F37-45AB-8485-E0C108175070 \
+  -derivedDataPath /private/tmp/BillSplitzDerivedData \
+  CODE_SIGNING_ALLOWED=NO \
+  -only-testing:BillSplitzTests \
+  -only-testing:BillSplitzUITests/BillSplitzUITests/testNavigatesMVPFlowShell</code></pre>
+      <ul>
+        <li>All existing settlement calculator tests passed.</li>
+        <li>New flow model tests passed for draft creation, ordered navigation, resume, and finish cleanup.</li>
+        <li>The UI test launched the app on iPhone 17 Pro, tapped New Split, advanced through each MVP screen, and returned to Start from Share.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Manual Review Steps</h2>
+      <ol>
+        <li>Run the app on an iPhone simulator with the <code>BillSplitz</code> scheme.</li>
+        <li>Confirm the first screen shows <code>BillSplitz</code>, <code>New Split</code>, disabled <code>Continue Draft</code>, and the six-step flow list.</li>
+        <li>Tap <code>New Split</code>, then tap <code>Next</code> through Session Setup, Receipt Capture, Receipt Review, Split Board, Settlement, and Share.</li>
+        <li>On any step, tap <code>Start</code> in the navigation bar, then tap <code>Continue Draft</code> to resume the latest step.</li>
+        <li>On Share, tap <code>Done</code> and confirm the app returns to Start with no resumable draft.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h2>Flagged Concerns</h2>
+      <ul>
+        <li>Resume is in-memory only. SwiftData persistence and app relaunch recovery are the main scope of Breakpoint 2.</li>
+        <li>The flow screens use static sample receipt data. They prove structure and navigation, not editable receipt behavior.</li>
+        <li>The older prototype item-list files remain in the repo, but they no longer drive app launch. They can be removed once the replacement screens own the same behavior.</li>
+        <li>Only the iPhone simulator path was tested in this checkpoint. A physical iPhone pass will matter once camera/OCR work starts.</li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

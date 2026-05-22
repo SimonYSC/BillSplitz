@@ -8,14 +8,15 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var viewModel = AppFlowViewModel()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        NavigationStack(path: $viewModel.path) {
+            AppStartView(viewModel: viewModel)
+                .navigationDestination(for: AppFlowStep.self) { step in
+                    AppFlowStepView(step: step, viewModel: viewModel)
+                }
         }
-        .padding()
     }
 }
 
