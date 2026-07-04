@@ -3,6 +3,7 @@
 //  BillSplitzTests
 //
 
+import Foundation
 import Testing
 @testable import BillSplitz
 
@@ -10,46 +11,112 @@ import Testing
 struct AppFlowViewModelTests {
     @Test func startingNewSplitCreatesDraftAtSetup() {
         let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
 
         viewModel.startNewSplit()
 
         #expect(viewModel.currentStep == .sessionSetup)
         #expect(viewModel.path == [.sessionSetup])
-        #expect(viewModel.activeSession?.title == "Sushi Night")
-        #expect(viewModel.activeSession?.status == .draft)
+        #expect(viewModel.draft.session.title == "Dinner")
+        #expect(viewModel.draft.session.status == .draft)
         #expect(viewModel.hasRecoverableSession)
     }
 
-    @Test func advancingMovesThroughMVPFlowInOrder() {
+    @Test func advancingRequiresReceiptInputBeforeReview() {
         let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
 
         viewModel.startNewSplit()
         viewModel.advance()
         #expect(viewModel.currentStep == .receiptCapture)
-        #expect(viewModel.activeSession?.status == .draft)
 
         viewModel.advance()
+        #expect(viewModel.currentStep == .receiptCapture)
+        #expect(viewModel.validationMessage == "Paste receipt text, enter items manually, or use the sample receipt.")
+    }
+
+    @Test func sampleReceiptCanAdvanceToShareAfterAssignments() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        viewModel.useSampleReceipt()
+        viewModel.advance()
         #expect(viewModel.currentStep == .receiptReview)
-        #expect(viewModel.activeSession?.status == .reviewingReceipt)
+        #expect(viewModel.draft.items.count == 4)
+        #expect(viewModel.draft.session.tax == decimal("3.97"))
+        #expect(viewModel.draft.session.tip == decimal("8.43"))
 
         viewModel.advance()
         #expect(viewModel.currentStep == .splitBoard)
-        #expect(viewModel.activeSession?.status == .splittingItems)
+        #expect(viewModel.unassignedItems.count == 2)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .splitBoard)
+
+        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
+        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let you = viewModel.draft.participants.first { $0.name == "You" }!
+        let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
+
+        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .settlement)
-        #expect(viewModel.activeSession?.status == .settled)
+        if case .ready(let lines) = viewModel.settlementState {
+            #expect(lines.map(\.grandTotal).reduce(0, +) == viewModel.draft.receiptTotal)
+        } else {
+            Issue.record("Expected settlement to be ready")
+        }
 
         viewModel.advance()
         #expect(viewModel.currentStep == .share)
-        #expect(viewModel.activeSession?.status == .settled)
+        #expect(viewModel.shareText.contains("Who owes what"))
+    }
+
+    @Test func participantSelectionUsesLatestAssignmentMode() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(
+            rawText: "Soup 12.00",
+            normalizedName: "Soup",
+            unitPrice: decimal("12.00"),
+            category: .main
+        )
+        viewModel.draft.items = [item]
+
+        let you = viewModel.draft.participants[0]
+        let alex = viewModel.draft.participants[1]
+
+        viewModel.setAssignmentMode(itemID: item.id, mode: .assigned)
+        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: you.id)
+
+        #expect(viewModel.draft.items[0].assignmentMode == .assigned)
+        #expect(viewModel.isParticipant(you.id, assignedTo: item.id))
+        #expect(!viewModel.isParticipant(alex.id, assignedTo: item.id))
+
+        viewModel.setAssignmentMode(itemID: item.id, mode: .split)
+        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: you.id)
+        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: alex.id)
+
+        #expect(viewModel.draft.items[0].assignmentMode == .split)
+        #expect(viewModel.isParticipant(you.id, assignedTo: item.id))
+        #expect(viewModel.isParticipant(alex.id, assignedTo: item.id))
     }
 
     @Test func resumeReturnsToMostRecentFlowStep() {
         let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
 
         viewModel.startNewSplit()
         viewModel.advance()
+        viewModel.useSampleReceipt()
         viewModel.advance()
         viewModel.returnToStart()
 
@@ -59,17 +126,20 @@ struct AppFlowViewModelTests {
     }
 
     @Test func finishingShareClearsActiveDraft() {
+        let repository = InMemorySessionRepository()
         let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: repository)
 
         viewModel.startNewSplit()
-        while viewModel.currentStep.next != nil {
-            viewModel.advance()
-        }
         viewModel.finishSharing()
 
         #expect(viewModel.currentStep == .start)
-        #expect(viewModel.activeSession == nil)
         #expect(!viewModel.hasRecoverableSession)
         #expect(!viewModel.resumeSplit())
+        #expect(repository.savedDraft == nil)
     }
+}
+
+private func decimal(_ value: String) -> Decimal {
+    Decimal(string: value)!
 }

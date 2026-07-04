@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct SplitSession: Identifiable, Equatable {
+struct SplitSession: Identifiable, Equatable, Codable {
     var id: UUID
     var createdAt: Date
     var title: String
@@ -46,7 +46,7 @@ enum SplitSessionStatus: String, CaseIterable, Codable {
     case settled
 }
 
-struct Participant: Identifiable, Equatable {
+struct Participant: Identifiable, Equatable, Codable {
     var id: UUID
     var name: String
     var paymentMethodType: PaymentMethodType?
@@ -75,7 +75,7 @@ enum PaymentMethodType: String, CaseIterable, Codable {
     case other
 }
 
-struct ReceiptItem: Identifiable, Equatable {
+struct ReceiptItem: Identifiable, Equatable, Codable {
     var id: UUID
     var rawText: String
     var normalizedName: String
@@ -123,7 +123,7 @@ enum ReceiptItemAssignmentMode: String, CaseIterable, Codable {
     case shared
 }
 
-struct ItemAssignment: Identifiable, Equatable {
+struct ItemAssignment: Identifiable, Equatable, Codable {
     var id: UUID
     var receiptItemID: UUID
     var participantID: UUID
@@ -142,7 +142,7 @@ struct ItemAssignment: Identifiable, Equatable {
     }
 }
 
-struct SplitRulePreset: Identifiable, Equatable {
+struct SplitRulePreset: Identifiable, Equatable, Codable {
     var id: UUID
     var name: String
     var sharedCategories: Set<ReceiptItemCategory>
@@ -167,7 +167,7 @@ struct SplitRulePreset: Identifiable, Equatable {
     }
 }
 
-struct SettlementLine: Identifiable, Equatable {
+struct SettlementLine: Identifiable, Equatable, Codable {
     var id: UUID
     var sessionID: UUID
     var participantID: UUID
@@ -191,5 +191,54 @@ struct SettlementLine: Identifiable, Equatable {
         self.taxShare = taxShare
         self.tipShare = tipShare
         self.grandTotal = itemSubtotal + taxShare + tipShare
+    }
+}
+
+extension PaymentMethodType {
+    var displayName: String {
+        switch self {
+        case .venmo:
+            "Venmo"
+        case .zelle:
+            "Zelle"
+        case .cashApp:
+            "Cash App"
+        case .other:
+            "Other"
+        }
+    }
+}
+
+extension ReceiptItemCategory {
+    var displayName: String {
+        switch self {
+        case .appetizer:
+            "Appetizer"
+        case .main:
+            "Main"
+        case .drink:
+            "Drink"
+        case .dessert:
+            "Dessert"
+        case .adjustment:
+            "Adjustment"
+        case .other:
+            "Other"
+        }
+    }
+}
+
+extension ReceiptItemAssignmentMode {
+    var displayName: String {
+        switch self {
+        case .unassigned:
+            "Unassigned"
+        case .assigned:
+            "Assigned"
+        case .split:
+            "Split"
+        case .shared:
+            "Shared"
+        }
     }
 }
