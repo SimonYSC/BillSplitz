@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var viewModel = AppFlowViewModel()
+    @StateObject private var viewModel = AppFlowViewModel()
 
     var body: some View {
         NavigationStack(path: $viewModel.path) {
@@ -17,9 +17,15 @@ struct ContentView: View {
                     AppFlowStepView(step: step, viewModel: viewModel)
                 }
         }
+        .task {
+            let repository = UserDefaultsSessionRepository()
+            if ProcessInfo.processInfo.arguments.contains("--reset-draft") {
+                try? repository.clearActiveDraft()
+            }
+            viewModel.configure(repository: repository)
+        }
+        .onChange(of: viewModel.draft) { _, _ in
+            viewModel.persistDraft()
+        }
     }
-}
-
-#Preview {
-    ContentView()
 }

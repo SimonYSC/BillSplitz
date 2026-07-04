@@ -23,8 +23,9 @@ final class BillSplitzUITests: XCTestCase {
     }
 
     @MainActor
-    func testNavigatesMVPFlowShell() throws {
+    func testCompletesSimulatorMVPFlowWithSampleReceipt() throws {
         let app = XCUIApplication()
+        app.launchArguments = ["--reset-draft"]
         app.launch()
 
         app.buttons["start-new-split-button"].tap()
@@ -34,20 +35,43 @@ final class BillSplitzUITests: XCTestCase {
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Receipt Capture"].waitForExistence(timeout: 2))
 
+        app.buttons["use-sample-receipt-button"].tap()
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Receipt Review"].waitForExistence(timeout: 2))
 
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Split Board"].waitForExistence(timeout: 2))
 
+        app.buttons["mode-Spicy tuna roll-assigned"].tap()
+        let spicyTunaYou = app.buttons["assign-Spicy tuna roll-You"]
+        spicyTunaYou.tap()
+        waitForSelected(spicyTunaYou)
+
+        app.swipeUp()
+        app.buttons["mode-Green tea-split"].tap()
+        let greenTeaAlex = app.buttons["assign-Green tea-Alex"]
+        greenTeaAlex.tap()
+        waitForSelected(greenTeaAlex)
+
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Settlement"].waitForExistence(timeout: 2))
 
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Share"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["share-summary-text"].waitForExistence(timeout: 2))
 
         nextButton.tap()
         XCTAssertTrue(app.buttons["start-new-split-button"].waitForExistence(timeout: 2))
+    }
+
+    private func waitForSelected(
+        _ element: XCUIElement,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        let predicate = NSPredicate(format: "value == %@", "Selected")
+        expectation(for: predicate, evaluatedWith: element)
+        waitForExpectations(timeout: 2)
     }
 
     @MainActor
