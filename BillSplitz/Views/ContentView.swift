@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var viewModel = AppFlowViewModel()
+    @State private var viewModel = AppFlowViewModel()
 
     var body: some View {
         NavigationStack(path: $viewModel.path) {

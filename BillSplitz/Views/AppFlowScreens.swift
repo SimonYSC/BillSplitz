@@ -8,7 +8,7 @@ import SwiftUI
 import UIKit
 
 struct AppStartView: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
 
     var body: some View {
         ScrollView {
@@ -69,7 +69,7 @@ struct AppStartView: View {
 
 struct AppFlowStepView: View {
     let step: AppFlowStep
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
 
     var body: some View {
         ScrollView {
@@ -111,7 +111,7 @@ struct AppFlowStepView: View {
 }
 
 private struct SessionSetupScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    @Bindable var viewModel: AppFlowViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -161,7 +161,7 @@ private struct SessionSetupScreen: View {
 }
 
 private struct ReceiptCaptureScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    @Bindable var viewModel: AppFlowViewModel
     @State private var selectedPhoto: PhotosPickerItem?
 
     var body: some View {
@@ -222,7 +222,7 @@ private struct ReceiptCaptureScreen: View {
 }
 
 private struct ReceiptReviewScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    @Bindable var viewModel: AppFlowViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -266,7 +266,7 @@ private struct ReceiptReviewScreen: View {
 }
 
 private struct SplitBoardScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -302,7 +302,7 @@ private struct SplitBoardScreen: View {
 }
 
 private struct SettlementScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -333,7 +333,7 @@ private struct SettlementScreen: View {
 }
 
 private struct ShareScreen: View {
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
     @State private var copied = false
 
     var body: some View {
@@ -457,7 +457,7 @@ private struct ReceiptItemEditorRow: View {
 
 private struct SplitItemCard: View {
     let item: ReceiptItem
-    @ObservedObject var viewModel: AppFlowViewModel
+    var viewModel: AppFlowViewModel
 
     var body: some View {
         SectionPanel(title: item.normalizedName) {

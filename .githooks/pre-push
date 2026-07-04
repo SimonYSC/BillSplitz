@@ -1,0 +1,17 @@
+#!/bin/sh
+# Gate: unit tests must pass before anything leaves this machine (decision: harness plan 2026-07-04).
+# Emergencies only: git push --no-verify
+echo "[pre-push] Running BillSplitz unit tests (UI tests stay in the pre-merge ritual)..."
+
+xcodebuild test \
+  -project BillSplitz.xcodeproj \
+  -scheme BillSplitz \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:BillSplitzTests \
+  -quiet
+
+status=$?
+if [ $status -ne 0 ]; then
+  echo "[pre-push] BLOCKED: unit tests failed (exit $status). Fix them or use --no-verify for a genuine emergency." >&2
+fi
+exit $status
