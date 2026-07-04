@@ -4,7 +4,7 @@
 //
 
 import Foundation
-import Combine
+import Observation
 
 enum AppFlowStep: String, CaseIterable, Hashable, Identifiable, Codable {
     case start
@@ -95,12 +95,13 @@ enum SettlementViewState: Equatable {
 }
 
 @MainActor
-final class AppFlowViewModel: ObservableObject {
-    @Published var path: [AppFlowStep] = []
-    @Published var draft: SplitDraft = .blank()
-    @Published private(set) var hasRecoverableSession = false
-    @Published private(set) var validationMessage: String?
-    @Published private(set) var persistenceError: String?
+@Observable
+final class AppFlowViewModel {
+    var path: [AppFlowStep] = []
+    var draft: SplitDraft = .blank()
+    private(set) var hasRecoverableSession = false
+    private(set) var validationMessage: String?
+    private(set) var persistenceError: String?
 
     private var repository: SessionRepository?
     private var isConfigured = false
@@ -234,6 +235,7 @@ final class AppFlowViewModel: ObservableObject {
     }
 
     func finishSharing() {
+        draft.session.status = .settled
         hasRecoverableSession = false
         validationMessage = nil
         path = []
@@ -362,7 +364,6 @@ final class AppFlowViewModel: ObservableObject {
             return
         }
 
-        objectWillChange.send()
         draft.items[index].assignmentMode = mode
         draft.assignments.removeAll { $0.receiptItemID == itemID }
 
@@ -385,7 +386,6 @@ final class AppFlowViewModel: ObservableObject {
             return
         }
 
-        objectWillChange.send()
         switch draft.items[index].assignmentMode {
         case .shared:
             draft.items[index].assignmentMode = .split
@@ -495,10 +495,8 @@ final class AppFlowViewModel: ObservableObject {
             draft.session.status = .draft
         case .receiptReview:
             draft.session.status = .reviewingReceipt
-        case .splitBoard:
+        case .splitBoard, .settlement, .share:
             draft.session.status = .splittingItems
-        case .settlement, .share:
-            draft.session.status = .settled
         }
     }
 

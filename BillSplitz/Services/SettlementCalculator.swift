@@ -137,9 +137,16 @@ struct SettlementCalculator {
         let roundedTotalCents = centsByParticipant.values.reduce(0, +)
         let difference = totalCents - roundedTotalCents
 
-        if difference != 0,
-           let adjustmentTarget = rawShares.max(by: { abs($0.amount) < abs($1.amount) })?.participantID {
-            centsByParticipant[adjustmentTarget, default: 0] += difference
+        if difference != 0 {
+            let maxAbsAmount = rawShares.map { abs($0.amount) }.max()
+            let adjustmentTarget = rawShares
+                .filter { abs($0.amount) == maxAbsAmount }
+                .min(by: { $0.participantID.uuidString < $1.participantID.uuidString })?
+                .participantID
+
+            if let adjustmentTarget {
+                centsByParticipant[adjustmentTarget, default: 0] += difference
+            }
         }
 
         for (participantID, cents) in centsByParticipant {

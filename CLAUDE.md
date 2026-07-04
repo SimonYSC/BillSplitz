@@ -22,9 +22,9 @@ Because the top-executor capability gap is narrow, don't rely on a single review
 
 - **UI:** SwiftUI
 - **View model observation:** Observation framework with `@Observable` (not `ObservableObject`)
-- **Persistence:** SwiftData
+- **Persistence:** Codable JSON in UserDefaults for the active draft, behind `SessionRepository`; SwiftData arrives with session history post-MVP ([decision 0002](docs/decisions/0002-persistence-userdefaults-json.md))
 - **Receipt scanning:** VisionKit `VNDocumentCameraViewController`
-- **OCR:** Vision `VNRecognizeTextRequest` (on-device only)
+- **OCR:** on-device Vision — primitive pending an on-device spike of `RecognizeDocumentsRequest` vs `VNRecognizeTextRequest` ([decision 0005](docs/decisions/0005-ocr-primitive-spike.md)); do not build `ReceiptOCRService` before the spike
 - **Photo import fallback:** PhotosUI
 - **Sharing:** `ShareLink` or a UIKit share sheet bridge
 - **Testing:** XCTest and Swift Testing
@@ -60,7 +60,7 @@ The MVP defines six core types: `SplitSession`, `Participant`, `ReceiptItem`, `I
 
 - **Keep `ReceiptItem` separate from `ItemAssignment`.** OCR cleanup and split math change for different reasons.
 - **`SplitSession.subtotal`/`tax`/`tip` are cached/derived** from items + assignments. Don't treat them as the source of truth — recompute when items change.
-- **`ItemAssignment.shareRatio`** is a fraction in `[0, 1]`. Ratios across all assignments for a single `ReceiptItem` must sum to 1.
+- **`ItemAssignment.shareRatio`** is a positive `Decimal` weight (typically 1); `SettlementCalculator` normalizes weights per item. There is no sums-to-1 invariant ([decision 0003](docs/decisions/0003-shareratio-weights.md)).
 - **`receiptImageRefs`** stores file paths inside the app sandbox, not raw blobs in SwiftData.
 
 ## Money math — strict rules
@@ -111,6 +111,11 @@ xcodebuild test -project BillSplitz.xcodeproj -scheme BillSplitz \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
+A versioned pre-push hook runs the unit tests (`-only-testing:BillSplitzTests`) before
+any push; one-time setup per clone: `git config core.hooksPath .githooks`. The full
+suite including UI tests remains required before merging. `git push --no-verify` is
+for genuine emergencies only.
+
 ## Out of scope for the MVP
 
 Do not add (without explicit discussion):
@@ -124,4 +129,4 @@ Do not add (without explicit discussion):
 
 ## When in doubt
 
-The MVP design spec is the source of truth for product and architecture decisions. If the spec is silent on something, surface it as a question rather than picking silently — see [AGENTS.md](AGENTS.md) §1.
+The MVP design spec is the source of truth for product and architecture decisions. Settled engineering choices live in [docs/decisions/](docs/decisions/) — consult them before re-litigating, and add a record whenever a choice affects more than one PR. If both are silent, surface it as a question rather than picking silently — see [AGENTS.md](AGENTS.md) §1.

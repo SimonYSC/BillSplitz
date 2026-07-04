@@ -197,6 +197,40 @@ struct AppFlowViewModelTests {
         #expect(viewModel.draft.items.count == 5)
     }
 
+    @Test func settlementAndShareDoNotMarkSessionSettled() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        viewModel.useSampleReceipt()
+        viewModel.advance()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .splitBoard)
+
+        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
+        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let you = viewModel.draft.participants.first { $0.name == "You" }!
+        let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
+
+        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .settlement)
+        #expect(viewModel.draft.session.status == .splittingItems)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .share)
+        #expect(viewModel.draft.session.status == .splittingItems)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .start)
+        #expect(!viewModel.hasRecoverableSession)
+    }
+
     @Test func finishingShareClearsActiveDraft() {
         let repository = InMemorySessionRepository()
         let viewModel = AppFlowViewModel()
