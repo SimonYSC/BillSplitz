@@ -6,6 +6,18 @@ Project-specific guidance for AI agents working on BillSplitz. Read [AGENTS.md](
 
 BillSplitz is an **iPhone-only native iOS app** for splitting shared receipts. One person scans a receipt, assigns items to participants, and shares a settlement summary. The MVP is **local-first, single-device, no accounts, no backend**.
 
+## Model division of labor
+
+Spend top-tier model capacity on judgment, not execution. Roles, not model names:
+
+- **Top tier** — architecture and UX decisions, adversarial diff review, writing task contracts, verification. Every substantive merge gets a top-tier diff review plus a green test suite.
+- **Executor tier** — implementation from a written contract: bug description, fix approach, test requirements, file allowlist, style rules. Dispatch executor subagents on **disjoint file sets** to avoid write conflicts.
+- **Mechanical tier** — fixtures, renames, doc syncing, applying precisely described changes.
+
+Current ladder (Fable 5 unavailable after 2026-07-07): top = Opus 4.8, executor = Sonnet 5, mechanical = Haiku 4.5. Update this line when models change; leave the roles alone.
+
+Because the top-executor capability gap is narrow, don't rely on a single review pass: money-math and data-loss-risk diffs get a second independent review with a different lens (or a cross-vendor reviewer), and correctness guarantees belong in invariant tests and hooks, not in review vigilance. Trivial single-file edits stay in the main thread — a subagent for a one-line change is waste.
+
 ## Tech stack — do not deviate without discussion
 
 - **UI:** SwiftUI
