@@ -23,7 +23,7 @@ BillSplitz is an **iPhone-only native iOS app** for splitting shared receipts. O
 
 - Architecture pattern: **MVVM**
 - Deployment target: **iOS 26.1** (`IPHONEOS_DEPLOYMENT_TARGET = 26.1`)
-- Device family: **iPhone only** — `TARGETED_DEVICE_FAMILY` must be `"1"` (the project currently has `"1,2,7"`; fix this before MVP work).
+- Device family: **iPhone only** — `TARGETED_DEVICE_FAMILY` must be `"1"`.
 
 Required `Info.plist` privacy strings:
 
@@ -96,7 +96,7 @@ Run tests:
 
 ```sh
 xcodebuild test -project BillSplitz.xcodeproj -scheme BillSplitz \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
 ## Out of scope for the MVP

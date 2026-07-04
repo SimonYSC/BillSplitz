@@ -178,6 +178,23 @@ struct BillSplitzTests {
         #expect(lines.map(\.tipShare).reduce(0, +) == session.tip)
     }
 
+    @Test func editableStringRoundTripsThroughDecimalParsing() {
+        let values = [decimal("3.97"), decimal("1234.56"), decimal("0.05")]
+
+        for value in values {
+            #expect(CurrencyFormatter.decimal(from: CurrencyFormatter.editableString(for: value)) == value)
+        }
+    }
+
+    @Test func editableStringUsesCanonicalDotDecimalWithNoGrouping() {
+        #expect(CurrencyFormatter.editableString(for: decimal("1234.56")) == "1234.56")
+        #expect(CurrencyFormatter.editableString(for: decimal("3.97")) == "3.97")
+    }
+
+    @Test func decimalFromToleratesDollarSignAndGroupingCommas() {
+        #expect(CurrencyFormatter.decimal(from: "$1,234.56") == decimal("1234.56"))
+    }
+
     @Test func unassignedItemsFailCalculation() throws {
         let item = ReceiptItem(
             rawText: "Dessert 8.00",

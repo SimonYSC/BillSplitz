@@ -17,6 +17,7 @@ struct SplitDraft: Identifiable, Equatable, Codable {
     var recoverableStep: AppFlowStep
     var updatedAt: Date
     var parsedAt: Date?
+    var parsedReceiptText: String?
 
     init(
         id: UUID = UUID(),
@@ -29,7 +30,8 @@ struct SplitDraft: Identifiable, Equatable, Codable {
         importedImageName: String? = nil,
         recoverableStep: AppFlowStep = .sessionSetup,
         updatedAt: Date = .now,
-        parsedAt: Date? = nil
+        parsedAt: Date? = nil,
+        parsedReceiptText: String? = nil
     ) {
         self.id = id
         self.session = session
@@ -42,6 +44,7 @@ struct SplitDraft: Identifiable, Equatable, Codable {
         self.recoverableStep = recoverableStep
         self.updatedAt = updatedAt
         self.parsedAt = parsedAt
+        self.parsedReceiptText = parsedReceiptText
     }
 
     static func blank() -> SplitDraft {

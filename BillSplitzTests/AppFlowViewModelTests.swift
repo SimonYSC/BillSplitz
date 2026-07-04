@@ -125,6 +125,78 @@ struct AppFlowViewModelTests {
         #expect(viewModel.currentStep == .receiptReview)
     }
 
+    @Test func backThenAdvancePreservesWork() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        viewModel.useSampleReceipt()
+        viewModel.advance()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .splitBoard)
+
+        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
+        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let you = viewModel.draft.participants.first { $0.name == "You" }!
+        let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
+
+        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
+
+        let itemIDsBeforeBack = Set(viewModel.draft.items.map(\.id))
+        let assignmentsBeforeBack = viewModel.draft.assignments
+        let taxBeforeBack = viewModel.draft.session.tax
+
+        viewModel.moveBack()
+        viewModel.moveBack()
+        #expect(viewModel.currentStep == .receiptCapture)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .receiptReview)
+        #expect(Set(viewModel.draft.items.map(\.id)) == itemIDsBeforeBack)
+        #expect(viewModel.draft.assignments == assignmentsBeforeBack)
+        #expect(viewModel.draft.session.tax == taxBeforeBack)
+    }
+
+    @Test func garbageTextBlocksAdvance() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .receiptCapture)
+
+        viewModel.draft.rawReceiptText = "no prices in this text"
+        viewModel.advance()
+
+        #expect(viewModel.currentStep == .receiptCapture)
+        #expect(viewModel.validationMessage != nil)
+    }
+
+    @Test func changedTextReParses() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        viewModel.useSampleReceipt()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .receiptReview)
+        #expect(viewModel.draft.items.count == 4)
+
+        viewModel.moveBack()
+        #expect(viewModel.currentStep == .receiptCapture)
+
+        viewModel.draft.rawReceiptText += "\nExtra roll 6.00"
+        viewModel.advance()
+
+        #expect(viewModel.currentStep == .receiptReview)
+        #expect(viewModel.draft.items.count == 5)
+    }
+
     @Test func finishingShareClearsActiveDraft() {
         let repository = InMemorySessionRepository()
         let viewModel = AppFlowViewModel()

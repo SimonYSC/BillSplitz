@@ -19,6 +19,8 @@ enum CurrencyFormatter {
     static func editableString(for amount: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.usesGroupingSeparator = false
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = 2
 

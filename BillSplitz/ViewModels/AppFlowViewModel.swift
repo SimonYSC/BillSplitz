@@ -196,7 +196,12 @@ final class AppFlowViewModel: ObservableObject {
         }
 
         if currentStep == .receiptCapture {
-            parseReceiptText()
+            let trimmedText = draft.rawReceiptText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let needsParse = draft.items.isEmpty || trimmedText != (draft.parsedReceiptText ?? "")
+
+            if needsParse, !parseReceiptText() {
+                return
+            }
         }
 
         if currentStep == .receiptReview, draft.assignments.isEmpty {
@@ -271,11 +276,12 @@ final class AppFlowViewModel: ObservableObject {
         validationMessage = "Photo import is wired for the workflow. For the simulator MVP, paste or type receipt text to continue."
     }
 
-    func parseReceiptText() {
+    @discardableResult
+    func parseReceiptText() -> Bool {
         let result = parser.parse(draft.rawReceiptText)
         guard !result.items.isEmpty else {
             validationMessage = "Add at least one receipt line with a price."
-            return
+            return false
         }
 
         draft.items = result.items
@@ -285,8 +291,10 @@ final class AppFlowViewModel: ObservableObject {
         draft.session.tip = result.tip
         draft.session.status = .reviewingReceipt
         draft.parsedAt = .now
+        draft.parsedReceiptText = draft.rawReceiptText.trimmingCharacters(in: .whitespacesAndNewlines)
         validationMessage = nil
         persistDraft()
+        return true
     }
 
     func addParticipant() {
