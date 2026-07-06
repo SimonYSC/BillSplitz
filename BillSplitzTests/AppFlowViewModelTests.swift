@@ -32,7 +32,7 @@ struct AppFlowViewModelTests {
 
         viewModel.advance()
         #expect(viewModel.currentStep == .receiptCapture)
-        #expect(viewModel.validationMessage == "Paste receipt text, enter items manually, or use the sample receipt.")
+        #expect(viewModel.validationMessage == "Paste receipt text, choose a photo, or add items manually.")
     }
 
     @Test func sampleReceiptCanAdvanceToShareAfterAssignments() {
@@ -44,26 +44,29 @@ struct AppFlowViewModelTests {
         viewModel.useSampleReceipt()
         viewModel.advance()
         #expect(viewModel.currentStep == .receiptReview)
-        #expect(viewModel.draft.items.count == 4)
-        #expect(viewModel.draft.session.tax == decimal("3.97"))
-        #expect(viewModel.draft.session.tip == decimal("8.43"))
+        #expect(viewModel.draft.items.count == 5)
+        #expect(viewModel.draft.session.tax == decimal("4.75"))
+        #expect(viewModel.draft.session.tip == decimal("11.30"))
 
         viewModel.advance()
         #expect(viewModel.currentStep == .splitBoard)
-        #expect(viewModel.unassignedItems.count == 2)
+        #expect(viewModel.unassignedItems.count == 3)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .splitBoard)
 
-        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
-        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let padThai = viewModel.draft.items.first { $0.normalizedName == "Pad Thai" }!
+        let greenCurry = viewModel.draft.items.first { $0.normalizedName == "Green Curry" }!
+        let thaiIcedTea = viewModel.draft.items.first { $0.normalizedName == "Thai Iced Tea" }!
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
+        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .settlement)
@@ -75,7 +78,7 @@ struct AppFlowViewModelTests {
 
         viewModel.advance()
         #expect(viewModel.currentStep == .share)
-        #expect(viewModel.shareText.contains("Who owes what"))
+        #expect(viewModel.shareText.contains("WHO OWES WHAT"))
     }
 
     @Test func participantSelectionUsesLatestAssignmentMode() {
@@ -136,15 +139,18 @@ struct AppFlowViewModelTests {
         viewModel.advance()
         #expect(viewModel.currentStep == .splitBoard)
 
-        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
-        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let padThai = viewModel.draft.items.first { $0.normalizedName == "Pad Thai" }!
+        let greenCurry = viewModel.draft.items.first { $0.normalizedName == "Green Curry" }!
+        let thaiIcedTea = viewModel.draft.items.first { $0.normalizedName == "Thai Iced Tea" }!
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
+        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
 
         let itemIDsBeforeBack = Set(viewModel.draft.items.map(\.id))
         let assignmentsBeforeBack = viewModel.draft.assignments
@@ -176,6 +182,25 @@ struct AppFlowViewModelTests {
         #expect(viewModel.validationMessage != nil)
     }
 
+    @Test func photoOnlyCaptureAdvancesToEmptyReview() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+
+        viewModel.startNewSplit()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .receiptCapture)
+
+        viewModel.notePhotoSelected()
+        viewModel.advance()
+
+        #expect(viewModel.currentStep == .receiptReview)
+        #expect(viewModel.draft.items.isEmpty)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .receiptReview)
+        #expect(viewModel.validationMessage != nil)
+    }
+
     @Test func changedTextReParses() {
         let viewModel = AppFlowViewModel()
         viewModel.configure(repository: InMemorySessionRepository())
@@ -185,7 +210,7 @@ struct AppFlowViewModelTests {
         viewModel.useSampleReceipt()
         viewModel.advance()
         #expect(viewModel.currentStep == .receiptReview)
-        #expect(viewModel.draft.items.count == 4)
+        #expect(viewModel.draft.items.count == 5)
 
         viewModel.moveBack()
         #expect(viewModel.currentStep == .receiptCapture)
@@ -194,7 +219,7 @@ struct AppFlowViewModelTests {
         viewModel.advance()
 
         #expect(viewModel.currentStep == .receiptReview)
-        #expect(viewModel.draft.items.count == 5)
+        #expect(viewModel.draft.items.count == 6)
     }
 
     @Test func settlementAndShareDoNotMarkSessionSettled() {
@@ -208,15 +233,18 @@ struct AppFlowViewModelTests {
         viewModel.advance()
         #expect(viewModel.currentStep == .splitBoard)
 
-        let spicyRoll = viewModel.draft.items.first { $0.normalizedName == "Spicy tuna roll" }!
-        let greenTea = viewModel.draft.items.first { $0.normalizedName == "Green tea" }!
+        let padThai = viewModel.draft.items.first { $0.normalizedName == "Pad Thai" }!
+        let greenCurry = viewModel.draft.items.first { $0.normalizedName == "Green Curry" }!
+        let thaiIcedTea = viewModel.draft.items.first { $0.normalizedName == "Thai Iced Tea" }!
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: spicyRoll.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: spicyRoll.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenTea.id, participantID: alex.id)
+        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
+        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
+        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .settlement)

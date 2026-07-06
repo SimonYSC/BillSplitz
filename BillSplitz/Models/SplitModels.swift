@@ -49,22 +49,13 @@ enum SplitSessionStatus: String, CaseIterable, Codable {
 struct Participant: Identifiable, Equatable, Codable {
     var id: UUID
     var name: String
-    var paymentMethodType: PaymentMethodType?
-    var paymentHandle: String?
-    var displayColor: String
 
     init(
         id: UUID = UUID(),
-        name: String,
-        paymentMethodType: PaymentMethodType? = nil,
-        paymentHandle: String? = nil,
-        displayColor: String = "#2F80ED"
+        name: String
     ) {
         self.id = id
         self.name = name
-        self.paymentMethodType = paymentMethodType
-        self.paymentHandle = paymentHandle
-        self.displayColor = displayColor
     }
 }
 

@@ -198,7 +198,7 @@ final class AppFlowViewModel {
 
         if currentStep == .receiptCapture {
             let trimmedText = draft.rawReceiptText.trimmingCharacters(in: .whitespacesAndNewlines)
-            let needsParse = draft.items.isEmpty || trimmedText != (draft.parsedReceiptText ?? "")
+            let needsParse = !trimmedText.isEmpty && (draft.items.isEmpty || trimmedText != (draft.parsedReceiptText ?? ""))
 
             if needsParse, !parseReceiptText() {
                 return
@@ -262,20 +262,22 @@ final class AppFlowViewModel {
     }
 
     func useSampleReceipt() {
+        draft.session.title = "Thai Night — Basil House"
         draft.rawReceiptText = """
-        Gyoza 8.95
-        Spicy tuna roll 25.90
-        Green tea 4.50
-        Mochi dessert 7.50
-        Tax 3.97
-        Tip 8.43
+        Spring Rolls 8.50
+        Pad Thai 16.50
+        Green Curry 17.00
+        Thai Iced Tea 5.50
+        Mango Sticky Rice 9.00
+        Tax 4.75
+        Tip 11.30
         """
         parseReceiptText()
     }
 
     func notePhotoSelected() {
         draft.importedImageName = "Photo selected for OCR review"
-        validationMessage = "Photo import is wired for the workflow. For the simulator MVP, paste or type receipt text to continue."
+        validationMessage = "Photo noted for OCR review. OCR isn't wired yet — type the receipt text or add items manually on the next screen."
     }
 
     @discardableResult
@@ -300,11 +302,7 @@ final class AppFlowViewModel {
     }
 
     func addParticipant() {
-        let colors = ["#2F80ED", "#27AE60", "#F2994A", "#9B51E0", "#EB5757"]
-        let participant = Participant(
-            name: "Person \(draft.participants.count + 1)",
-            displayColor: colors[draft.participants.count % colors.count]
-        )
+        let participant = Participant(name: "Person \(draft.participants.count + 1)")
         draft.participants.append(participant)
 
         if draft.payerID == nil {
@@ -457,8 +455,12 @@ final class AppFlowViewModel {
                 draft.payerID = draft.participants.first?.id
             }
         case .receiptCapture:
-            if draft.rawReceiptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && draft.items.isEmpty {
-                validationMessage = "Paste receipt text, enter items manually, or use the sample receipt."
+            let hasText = !draft.rawReceiptText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let hasItems = !draft.items.isEmpty
+            let hasPhoto = draft.importedImageName != nil
+
+            if !hasText && !hasItems && !hasPhoto {
+                validationMessage = "Paste receipt text, choose a photo, or add items manually."
                 return false
             }
         case .receiptReview:
