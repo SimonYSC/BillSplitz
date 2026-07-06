@@ -1,5 +1,7 @@
 # BillSplitz MVP User Flow
 
+> **Superseded** by [2026-07-05-billsplitz-user-flow-v2.md](2026-07-05-billsplitz-user-flow-v2.md) — kept for history only.
+
 Source: `docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md`
 
 Primary path:
