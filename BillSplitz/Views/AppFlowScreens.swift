@@ -131,20 +131,28 @@ struct AppFlowStepView: View {
     var viewModel: AppFlowViewModel
 
     var body: some View {
-        VStack(spacing: 16) {
-            BSScreenHeader(step: step, onBack: { viewModel.moveBack() })
+        // Split Board owns its own header/footer (see SplitBoardScreen) so its assign-mode
+        // scrim and bubbles can cover the entire screen via .ignoresSafeArea() — nesting it
+        // inside this VStack's 20pt padding would clip the overlay short of the real edges.
+        if step == .splitBoard {
+            SplitBoardScreen(viewModel: viewModel)
+                .toolbar(.hidden, for: .navigationBar)
+        } else {
+            VStack(spacing: 16) {
+                BSScreenHeader(step: step, onBack: { viewModel.moveBack() })
 
-            ScrollView {
-                stepContent
-                    .padding(.top, 4)
+                ScrollView {
+                    stepContent
+                        .padding(.top, 4)
+                }
+
+                BSFlowFooter(step: step, viewModel: viewModel)
             }
-
-            BSFlowFooter(step: step, viewModel: viewModel)
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Color.bsPaper)
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.bsPaper)
-        .toolbar(.hidden, for: .navigationBar)
     }
 
     @ViewBuilder
@@ -159,7 +167,7 @@ struct AppFlowStepView: View {
         case .receiptReview:
             ReceiptReviewScreen(viewModel: viewModel)
         case .splitBoard:
-            SplitBoardScreen(viewModel: viewModel)
+            EmptyView()
         case .settlement:
             SettlementScreen(viewModel: viewModel)
         case .share:
@@ -389,44 +397,6 @@ private struct ReceiptReviewScreen: View {
     }
 }
 
-private struct SplitBoardScreen: View {
-    var viewModel: AppFlowViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            BSCard(title: "Preset") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Appetizers, desserts, and adjustments are shared. Mains and drinks stay assignable.")
-                        .font(.bsBody(12, weight: .regular))
-                        .foregroundStyle(Color.bsInkMuted)
-
-                    Button {
-                        viewModel.applyDefaultPreset()
-                    } label: {
-                        Text("APPLY MEAL PRESET")
-                            .font(.bsBody(13, weight: .bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                    }
-                    .buttonStyle(BSButtonStyle(background: .bsAccent, shadowOffset: 4))
-                    .accessibilityIdentifier("apply-preset-button")
-                }
-            }
-
-            if !viewModel.unassignedItems.isEmpty {
-                BSStatusStrip(
-                    text: "\(viewModel.unassignedItems.count) item\(viewModel.unassignedItems.count == 1 ? "" : "s") still need assignment.",
-                    style: .warning
-                )
-            }
-
-            ForEach(viewModel.draft.items) { item in
-                SplitItemCard(item: item, viewModel: viewModel)
-            }
-        }
-    }
-}
-
 private struct SettlementScreen: View {
     var viewModel: AppFlowViewModel
 
@@ -593,104 +563,6 @@ private struct ReceiptItemEditorRow: View {
     }
 }
 
-private struct SplitItemCard: View {
-    let item: ReceiptItem
-    var viewModel: AppFlowViewModel
-
-    var body: some View {
-        BSCard(title: item.normalizedName) {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(item.category.displayName)
-                        .font(.bsBody(11, weight: .bold))
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color.bsInkMuted)
-                    Spacer()
-                    Text(CurrencyFormatter.string(for: item.totalPrice, currencyCode: viewModel.draft.session.currencyCode))
-                        .font(.bsMono(13))
-                }
-
-                HStack(spacing: 8) {
-                    AssignmentModeButton(title: "Shared", isSelected: item.assignmentMode == .shared) {
-                        viewModel.setAssignmentMode(itemID: item.id, mode: .shared)
-                    }
-                    .accessibilityIdentifier("mode-\(item.normalizedName)-shared")
-                    AssignmentModeButton(title: "Assigned", isSelected: item.assignmentMode == .assigned) {
-                        viewModel.setAssignmentMode(itemID: item.id, mode: .assigned)
-                    }
-                    .accessibilityIdentifier("mode-\(item.normalizedName)-assigned")
-                    AssignmentModeButton(title: "Split", isSelected: item.assignmentMode == .split) {
-                        viewModel.setAssignmentMode(itemID: item.id, mode: .split)
-                    }
-                    .accessibilityIdentifier("mode-\(item.normalizedName)-split")
-                }
-
-                FlowTokenWrap {
-                    ForEach(viewModel.draft.participants) { participant in
-                        ParticipantAssignmentButton(
-                            participant: participant,
-                            item: item,
-                            isSelected: viewModel.isParticipant(participant.id, assignedTo: item.id)
-                        ) {
-                            viewModel.selectParticipantForAssignment(itemID: item.id, participantID: participant.id)
-                        }
-                    }
-                }
-
-                if !viewModel.draft.assignments.contains(where: { $0.receiptItemID == item.id }) {
-                    Text("Unassigned")
-                        .font(.bsBody(11, weight: .bold))
-                        .textCase(.uppercase)
-                        .foregroundStyle(Color.bsDanger)
-                }
-            }
-        }
-    }
-}
-
-private struct ParticipantAssignmentButton: View {
-    let participant: Participant
-    let item: ReceiptItem
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(participant.name)
-                .font(.bsBody(12, weight: .bold))
-                .textCase(.uppercase)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .frame(minHeight: 36)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(isSelected ? Color.bsInk : Color.bsInkMuted)
-        .background(isSelected ? Color.bsAccent : Color.bsCard)
-        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.tag))
-        .accessibilityIdentifier("assign-\(item.normalizedName)-\(participant.name)")
-        .accessibilityValue(isSelected ? "Selected" : "Not selected")
-    }
-}
-
-private struct AssignmentModeButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title.uppercased())
-                .font(.bsBody(11, weight: .bold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(isSelected ? Color.bsInk : Color.bsInkMuted)
-        .background(isSelected ? Color.bsAccent : Color.bsCard)
-        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.tag))
-    }
-}
-
 private struct SettlementLineCard: View {
     let participant: Participant
     let line: SettlementLine
@@ -726,16 +598,3 @@ private struct SettlementLineCard: View {
     }
 }
 
-private struct FlowTokenWrap<Content: View>: View {
-    let content: () -> Content
-
-    init(@ViewBuilder content: @escaping () -> Content) {
-        self.content = content
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content()
-        }
-    }
-}
