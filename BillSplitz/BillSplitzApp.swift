@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct BillSplitzApp: App {
+    init() {
+        _ = BSFontRegistrar.isReady
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
