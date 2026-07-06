@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Project-specific guidance for AI agents working on BillSplitz. Read [AGENTS.md](AGENTS.md) for general behavioral guidelines, and [docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md](docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md) for the authoritative MVP design.
+Project-specific guidance for AI agents working on BillSplitz. Read [AGENTS.md](AGENTS.md) for general behavioral guidelines, and [docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md](docs/superpowers/specs/2026-05-04-billsplitz-mvp-design.md) for the authoritative MVP design. For UI work: [docs/design/2026-07-05-billsplitz-design-system.md](docs/design/2026-07-05-billsplitz-design-system.md) owns how things look (the "Tab" neo-brutalist system — tokens, components, motion), and [docs/flows/2026-07-05-billsplitz-user-flow-v2.md](docs/flows/2026-07-05-billsplitz-user-flow-v2.md) owns what each screen does (states, validation, copy).
 
 ## What this is
 
