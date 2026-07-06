@@ -29,44 +29,52 @@ final class BillSplitzUITests: XCTestCase {
         app.launch()
 
         app.buttons["start-new-split-button"].tap()
-        XCTAssertTrue(app.staticTexts["Session Setup"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-sessionSetup"].waitForExistence(timeout: 2))
 
         let nextButton = app.buttons["flow-next-button"]
         nextButton.tap()
-        XCTAssertTrue(app.staticTexts["Receipt Capture"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-receiptCapture"].waitForExistence(timeout: 2))
 
         app.buttons["use-sample-receipt-button"].tap()
         nextButton.tap()
-        XCTAssertTrue(app.staticTexts["Receipt Review"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-receiptReview"].waitForExistence(timeout: 2))
 
         nextButton.tap()
-        XCTAssertTrue(app.staticTexts["Split Board"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-splitBoard"].waitForExistence(timeout: 2))
 
-        app.buttons["mode-Pad Thai-assigned"].tap()
-        let padThaiYou = app.buttons["assign-Pad Thai-You"]
-        padThaiYou.tap()
-        waitForSelected(padThaiYou)
-
-        app.swipeUp()
-        app.buttons["mode-Green Curry-assigned"].tap()
-        let greenCurryYou = app.buttons["assign-Green Curry-You"]
-        greenCurryYou.tap()
-        waitForSelected(greenCurryYou)
-
-        app.buttons["mode-Thai Iced Tea-assigned"].tap()
-        let thaiIcedTeaAlex = app.buttons["assign-Thai Iced Tea-Alex"]
-        thaiIcedTeaAlex.tap()
-        waitForSelected(thaiIcedTeaAlex)
+        assignItem("Pad Thai", to: "You", in: app)
+        assignItem("Green Curry", to: "You", in: app)
+        assignItem("Thai Iced Tea", to: "Alex", in: app)
 
         nextButton.tap()
-        XCTAssertTrue(app.staticTexts["Settlement"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-settlement"].waitForExistence(timeout: 2))
 
         nextButton.tap()
-        XCTAssertTrue(app.staticTexts["Share"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["screen-title-share"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["share-summary-text"].waitForExistence(timeout: 2))
 
         nextButton.tap()
         XCTAssertTrue(app.buttons["start-new-split-button"].waitForExistence(timeout: 2))
+    }
+
+    private func assignItem(_ itemName: String, to participantName: String, in app: XCUIApplication) {
+        let modeButton = app.buttons["mode-\(itemName)-assigned"]
+        scrollIntoView(modeButton, in: app)
+        modeButton.tap()
+
+        let assignButton = app.buttons["assign-\(itemName)-\(participantName)"]
+        scrollIntoView(assignButton, in: app)
+        assignButton.tap()
+        waitForSelected(assignButton)
+    }
+
+    private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
+        var attempts = 0
+        while !element.isHittable && attempts < 6 {
+            app.swipeUp(velocity: .slow)
+            attempts += 1
+        }
+        XCTAssertTrue(element.isHittable, "\(element.identifier) never became hittable after scrolling")
     }
 
     private func waitForSelected(
@@ -74,7 +82,8 @@ final class BillSplitzUITests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
-        let predicate = NSPredicate(format: "value == %@", "Selected")
+        // ==[c]: the Tab reskin's textCase environment uppercases accessibility values on iOS 26.
+        let predicate = NSPredicate(format: "value ==[c] %@", "Selected")
         expectation(for: predicate, evaluatedWith: element)
         waitForExpectations(timeout: 2)
     }

@@ -13,33 +13,27 @@ struct AppStartView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("BillSplitz")
-                        .font(.largeTitle.bold())
-                    Text("Create a receipt split, assign items, settle totals, and share who owes what.")
-                        .foregroundStyle(.secondary)
-                }
+                BSStartHero()
 
                 VStack(spacing: 12) {
                     Button {
                         viewModel.startNewSplit()
                     } label: {
-                        FlowActionLabel(
-                            title: "New Split",
-                            subtitle: "Start a local receipt split",
-                            systemImage: "plus.circle.fill"
-                        )
+                        Text("NEW SPLIT")
+                            .font(.bsBody(15, weight: .bold))
+                            .textCase(.uppercase)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(BSButtonStyle(background: .bsAccent, shadowOffset: 6))
                     .accessibilityIdentifier("start-new-split-button")
 
                     Button {
                         _ = viewModel.resumeSplit()
                     } label: {
-                        FlowActionLabel(
-                            title: "Continue Draft",
+                        BSContinueDraftLabel(
                             subtitle: viewModel.hasRecoverableSession ? viewModel.activeSessionTitle : "No saved draft yet",
-                            systemImage: "arrow.clockwise.circle.fill"
+                            enabled: viewModel.hasRecoverableSession
                         )
                     }
                     .buttonStyle(.plain)
@@ -48,22 +42,87 @@ struct AppStartView: View {
                 }
 
                 if let persistenceError = viewModel.persistenceError {
-                    StatusMessage(text: persistenceError, style: .warning)
+                    BSStatusStrip(text: persistenceError, style: .warning)
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Flow")
-                        .font(.headline)
-                    ForEach(AppFlowStep.navigableSteps) { step in
-                        FlowStepRow(step: step)
+                BSCard(title: "Flow") {
+                    VStack(spacing: 10) {
+                        ForEach(AppFlowStep.navigableSteps) { step in
+                            BSFlowStepRow(step: step)
+                        }
                     }
                 }
             }
-            .padding(24)
+            .padding(20)
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("Start")
-        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.bsPaper)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct BSStartHero: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("BILLSPLITZ")
+                .font(.bsDisplay(38))
+                .foregroundStyle(Color.bsInk)
+            Text("Split the receipt. Everyone pays their share — down to the cent.")
+                .font(.bsBody(14))
+                .foregroundStyle(Color.bsInkMuted)
+        }
+    }
+}
+
+private struct BSContinueDraftLabel: View {
+    let subtitle: String
+    let enabled: Bool
+
+    var body: some View {
+        Text(subtitle.isEmpty ? "CONTINUE DRAFT" : "CONTINUE DRAFT — \(subtitle)")
+            .font(.bsBody(13, weight: .bold))
+            .textCase(.uppercase)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .foregroundStyle(enabled ? Color.bsInk : Color.bsDisabledText)
+            .background(enabled ? Color.bsCard : Color.bsDisabledFill)
+            .overlay(
+                Rectangle().stroke(enabled ? Color.bsInk : Color.bsDisabledText, lineWidth: BSBorder.card)
+            )
+            .modifier(BSConditionalShadow(offset: enabled ? 6 : 0))
+    }
+}
+
+private struct BSConditionalShadow: ViewModifier {
+    let offset: CGFloat
+
+    func body(content: Content) -> some View {
+        if offset > 0 {
+            content.bsShadow(offset: offset)
+        } else {
+            content
+        }
+    }
+}
+
+private struct BSFlowStepRow: View {
+    let step: AppFlowStep
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("\(step.stepNumber ?? 0)")
+                .font(.bsBody(12, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 24, height: 24)
+                .background(Color.bsInk)
+
+            Text(step.title)
+                .font(.bsBody(13, weight: .semibold))
+                .foregroundStyle(Color.bsInk)
+
+            Spacer()
+        }
     }
 }
 
@@ -72,40 +131,39 @@ struct AppFlowStepView: View {
     var viewModel: AppFlowViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                FlowStepHeader(step: step)
+        VStack(spacing: 16) {
+            BSScreenHeader(step: step, onBack: { viewModel.moveBack() })
 
-                switch step {
-                case .start:
-                    EmptyView()
-                case .sessionSetup:
-                    SessionSetupScreen(viewModel: viewModel)
-                case .receiptCapture:
-                    ReceiptCaptureScreen(viewModel: viewModel)
-                case .receiptReview:
-                    ReceiptReviewScreen(viewModel: viewModel)
-                case .splitBoard:
-                    SplitBoardScreen(viewModel: viewModel)
-                case .settlement:
-                    SettlementScreen(viewModel: viewModel)
-                case .share:
-                    ShareScreen(viewModel: viewModel)
-                }
-
-                FlowFooter(step: step, viewModel: viewModel)
+            ScrollView {
+                stepContent
+                    .padding(.top, 4)
             }
-            .padding(20)
+
+            BSFlowFooter(step: step, viewModel: viewModel)
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle(step.title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Start") {
-                    viewModel.returnToStart()
-                }
-            }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.bsPaper)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch step {
+        case .start:
+            EmptyView()
+        case .sessionSetup:
+            SessionSetupScreen(viewModel: viewModel)
+        case .receiptCapture:
+            ReceiptCaptureScreen(viewModel: viewModel)
+        case .receiptReview:
+            ReceiptReviewScreen(viewModel: viewModel)
+        case .splitBoard:
+            SplitBoardScreen(viewModel: viewModel)
+        case .settlement:
+            SettlementScreen(viewModel: viewModel)
+        case .share:
+            ShareScreen(viewModel: viewModel)
         }
     }
 }
@@ -115,72 +173,93 @@ private struct SessionSetupScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SectionPanel(title: "Session") {
+            BSCard(title: "Session") {
                 TextField("Split title", text: $viewModel.draft.session.title)
                     .textInputAutocapitalization(.words)
-                    .textFieldStyle(.roundedBorder)
+                    .font(.bsBody(14))
+                    .padding(10)
+                    .background(Color.bsCard)
+                    .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
                     .accessibilityIdentifier("session-title-field")
             }
 
-            SectionPanel(title: "Payer") {
-                VStack(alignment: .leading, spacing: 12) {
-                    Picker("Paid by", selection: Binding<UUID?>(
-                        get: { viewModel.draft.payerID },
-                        set: { viewModel.draft.payerID = $0 }
-                    )) {
-                        ForEach(viewModel.draft.participants) { participant in
-                            Text(participant.name).tag(Optional(participant.id))
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .accessibilityIdentifier("payer-picker")
+            BSCard(title: "Payer") {
+                BSPayerFields(viewModel: viewModel)
+            }
 
-                    Picker("Payment method", selection: Binding<PaymentMethodType>(
-                        get: { viewModel.draft.payerPaymentMethod ?? .venmo },
-                        set: { viewModel.draft.payerPaymentMethod = $0 }
-                    )) {
-                        ForEach(PaymentMethodType.allCases, id: \.self) { paymentType in
-                            Text(paymentType.displayName).tag(paymentType)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .accessibilityIdentifier("payer-method-picker")
+            BSCard(title: "Participants") {
+                BSParticipantsList(viewModel: viewModel)
+            }
+        }
+    }
+}
 
-                    TextField("Payment handle", text: Binding<String>(
-                        get: { viewModel.draft.payerPaymentHandle ?? "" },
-                        set: { viewModel.draft.payerPaymentHandle = $0.isEmpty ? nil : $0 }
-                    ))
-                    .textInputAutocapitalization(.never)
-                    .textFieldStyle(.roundedBorder)
-                    .accessibilityIdentifier("payer-handle-field")
+private struct BSPayerFields: View {
+    @Bindable var viewModel: AppFlowViewModel
 
-                    Text("Covers the bill. Their payment details go in the shared summary so everyone knows where to send money.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Picker("Paid by", selection: Binding<UUID?>(
+                get: { viewModel.draft.payerID },
+                set: { viewModel.draft.payerID = $0 }
+            )) {
+                ForEach(viewModel.draft.participants) { participant in
+                    Text(participant.name).tag(Optional(participant.id))
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("payer-picker")
+
+            Picker("Payment method", selection: Binding<PaymentMethodType>(
+                get: { viewModel.draft.payerPaymentMethod ?? .venmo },
+                set: { viewModel.draft.payerPaymentMethod = $0 }
+            )) {
+                ForEach(PaymentMethodType.allCases, id: \.self) { paymentType in
+                    Text(paymentType.displayName).tag(paymentType)
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("payer-method-picker")
+
+            TextField("Payment handle", text: Binding<String>(
+                get: { viewModel.draft.payerPaymentHandle ?? "" },
+                set: { viewModel.draft.payerPaymentHandle = $0.isEmpty ? nil : $0 }
+            ))
+            .textInputAutocapitalization(.never)
+            .font(.bsBody(14))
+            .padding(10)
+            .background(Color.bsCard)
+            .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
+            .accessibilityIdentifier("payer-handle-field")
+
+            Text("Covers the bill. Their payment details go in the shared summary so everyone knows where to send money.")
+                .font(.bsBody(12, weight: .regular))
+                .foregroundStyle(Color.bsInkMuted)
+        }
+    }
+}
+
+private struct BSParticipantsList: View {
+    @Bindable var viewModel: AppFlowViewModel
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ForEach($viewModel.draft.participants) { $participant in
+                ParticipantEditorRow(
+                    participant: $participant,
+                    canDelete: viewModel.draft.participants.count > 2
+                ) {
+                    viewModel.removeParticipant(id: participant.id)
                 }
             }
 
-            SectionPanel(title: "Participants") {
-                VStack(spacing: 12) {
-                    ForEach($viewModel.draft.participants) { $participant in
-                        ParticipantEditorRow(
-                            participant: $participant,
-                            canDelete: viewModel.draft.participants.count > 2
-                        ) {
-                            viewModel.removeParticipant(id: participant.id)
-                        }
-                    }
-
-                    Button {
-                        viewModel.addParticipant()
-                    } label: {
-                        Label("Add Participant", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("add-participant-button")
-                }
+            Button {
+                viewModel.addParticipant()
+            } label: {
+                BSDashedButtonLabel(title: "Add Participant")
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("add-participant-button")
         }
     }
 }
@@ -191,57 +270,78 @@ private struct ReceiptCaptureScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SectionPanel(title: "Receipt Input") {
+            BSCard(title: "Receipt Input") {
                 VStack(alignment: .leading, spacing: 12) {
-                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Label("Choose Photo", systemImage: "photo.on.rectangle")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityIdentifier("choose-photo-button")
-                    .onChange(of: selectedPhoto) { _, newValue in
-                        if newValue != nil {
-                            viewModel.notePhotoSelected()
-                        }
-                    }
-
                     TextEditor(text: $viewModel.draft.rawReceiptText)
+                        .font(.bsMono(12.5))
                         .frame(minHeight: 180)
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .stroke(Color(.separator), lineWidth: 0.5)
-                        }
+                        .background(Color.bsPaperSunken)
+                        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
                         .accessibilityIdentifier("receipt-text-editor")
 
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                            Text("CHOOSE PHOTO")
+                                .font(.bsBody(12, weight: .bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(BSButtonStyle(background: .bsCard, shadowOffset: 3, borderWidth: BSBorder.control))
+                        .accessibilityIdentifier("choose-photo-button")
+                        .onChange(of: selectedPhoto) { _, newValue in
+                            if newValue != nil {
+                                viewModel.notePhotoSelected()
+                            }
+                        }
+
                         Button {
                             viewModel.useSampleReceipt()
                         } label: {
-                            Label("Use Sample", systemImage: "doc.text")
+                            Text("USE SAMPLE")
+                                .font(.bsBody(12, weight: .bold))
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(BSButtonStyle(background: .bsCard, shadowOffset: 3, borderWidth: BSBorder.control))
                         .accessibilityIdentifier("use-sample-receipt-button")
-
-                        Button {
-                            viewModel.parseReceiptText()
-                        } label: {
-                            Label("Parse Receipt", systemImage: "text.viewfinder")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .accessibilityIdentifier("parse-receipt-button")
                     }
+
+                    Button {
+                        viewModel.parseReceiptText()
+                    } label: {
+                        Text("PARSE RECEIPT")
+                            .font(.bsBody(13, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                    }
+                    .buttonStyle(BSButtonStyle(background: .bsAccent, shadowOffset: 4))
+                    .accessibilityIdentifier("parse-receipt-button")
                 }
             }
 
             if let importedImageName = viewModel.draft.importedImageName {
-                StatusMessage(text: importedImageName, style: .neutral)
+                BSStatusStrip(text: importedImageName, style: .neutral)
             }
+        }
+    }
+}
+
+private struct BSTotalsRow: View {
+    let label: String
+    let value: String
+    var emphasized: Bool = false
+
+    var body: some View {
+        HStack {
+            Text(label)
+                .font(emphasized ? .bsBody(14, weight: .bold) : .bsBody(13, weight: .semibold))
+                .foregroundStyle(Color.bsInk)
+            Spacer()
+            Text(value)
+                .font(emphasized ? .bsBody(16, weight: .bold) : .bsMono(13))
+                .foregroundStyle(Color.bsInk)
         }
     }
 }
@@ -251,21 +351,21 @@ private struct ReceiptReviewScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SectionPanel(title: "Totals") {
+            BSCard(title: "Totals") {
                 VStack(alignment: .leading, spacing: 12) {
-                    LabeledContent("Items", value: viewModel.itemSubtotalText)
+                    BSTotalsRow(label: "Items", value: viewModel.itemSubtotalText)
                     DecimalTextField(title: "Tax", value: $viewModel.draft.session.tax)
                         .accessibilityIdentifier("tax-field")
                     DecimalTextField(title: "Tip", value: $viewModel.draft.session.tip)
                         .accessibilityIdentifier("tip-field")
-                    LabeledContent("Receipt Total", value: viewModel.receiptTotalText)
+                    BSTotalsRow(label: "Receipt Total", value: viewModel.receiptTotalText, emphasized: true)
                 }
             }
 
-            SectionPanel(title: "Items") {
+            BSCard(title: "Items") {
                 VStack(spacing: 12) {
                     if viewModel.draft.items.isEmpty {
-                        StatusMessage(text: "Parse receipt text or add items manually.", style: .neutral)
+                        BSStatusStrip(text: "Parse receipt text or add items manually.", style: .neutral)
                     }
 
                     ForEach($viewModel.draft.items) { $item in
@@ -279,10 +379,9 @@ private struct ReceiptReviewScreen: View {
                     Button {
                         viewModel.addReceiptItem()
                     } label: {
-                        Label("Add Item", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
+                        BSDashedButtonLabel(title: "Add Item")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .accessibilityIdentifier("add-item-button")
                 }
             }
@@ -295,25 +394,27 @@ private struct SplitBoardScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SectionPanel(title: "Preset") {
+            BSCard(title: "Preset") {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Appetizers, desserts, and adjustments are shared. Mains and drinks stay assignable.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.bsBody(12, weight: .regular))
+                        .foregroundStyle(Color.bsInkMuted)
 
                     Button {
                         viewModel.applyDefaultPreset()
                     } label: {
-                        Label("Apply Meal Preset", systemImage: "wand.and.stars")
+                        Text("APPLY MEAL PRESET")
+                            .font(.bsBody(13, weight: .bold))
                             .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(BSButtonStyle(background: .bsAccent, shadowOffset: 4))
                     .accessibilityIdentifier("apply-preset-button")
                 }
             }
 
             if !viewModel.unassignedItems.isEmpty {
-                StatusMessage(
+                BSStatusStrip(
                     text: "\(viewModel.unassignedItems.count) item\(viewModel.unassignedItems.count == 1 ? "" : "s") still need assignment.",
                     style: .warning
                 )
@@ -333,27 +434,45 @@ private struct SettlementScreen: View {
         VStack(alignment: .leading, spacing: 16) {
             switch viewModel.settlementState {
             case .ready(let lines):
-                SectionPanel(title: "Settlement") {
-                    VStack(spacing: 12) {
-                        ForEach(viewModel.draft.participants) { participant in
-                            if let line = viewModel.settlementLine(for: participant.id, in: lines) {
-                                SettlementLineRow(
-                                    participant: participant,
-                                    line: line,
-                                    currencyCode: viewModel.draft.session.currencyCode
-                                )
-                            }
+                VStack(spacing: 12) {
+                    ForEach(viewModel.draft.participants) { participant in
+                        if let line = viewModel.settlementLine(for: participant.id, in: lines) {
+                            SettlementLineCard(
+                                participant: participant,
+                                line: line,
+                                currencyCode: viewModel.draft.session.currencyCode,
+                                isPayer: participant.id == viewModel.draft.payerID
+                            )
                         }
-
-                        Divider()
-                        LabeledContent("Receipt Total", value: viewModel.receiptTotalText)
-                            .font(.headline)
                     }
+
+                    BSGrandTotalBar(amountText: viewModel.receiptTotalText)
                 }
             case .blocked(let message):
-                StatusMessage(text: message, style: .warning)
+                BSStatusStrip(text: message, style: .warning)
             }
         }
+    }
+}
+
+private struct BSGrandTotalBar: View {
+    let amountText: String
+
+    var body: some View {
+        HStack {
+            Text("RECEIPT TOTAL")
+                .font(.bsBody(13, weight: .bold))
+                .textCase(.uppercase)
+                .foregroundStyle(.white)
+
+            Spacer()
+
+            Text(amountText)
+                .font(.bsDisplay(18))
+                .foregroundStyle(Color.bsAccent)
+        }
+        .padding(14)
+        .background(Color.bsInk)
     }
 }
 
@@ -363,31 +482,37 @@ private struct ShareScreen: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            SectionPanel(title: "Plain Text Summary") {
+            BSCard(title: "The Damage") {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(viewModel.shareText)
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                        .font(.bsMono(11.5))
+                        .foregroundStyle(Color.bsInk)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(Color.bsPaperSunken)
                         .accessibilityIdentifier("share-summary-text")
 
                     HStack(spacing: 12) {
                         ShareLink(item: viewModel.shareText) {
-                            Label("Share Summary", systemImage: "square.and.arrow.up")
+                            Text("SHARE SUMMARY")
+                                .font(.bsBody(13, weight: .bold))
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(BSButtonStyle(background: .bsAccent, shadowOffset: 4))
                         .accessibilityIdentifier("share-summary-button")
 
                         Button {
                             UIPasteboard.general.string = viewModel.shareText
                             copied = true
                         } label: {
-                            Label(copied ? "Copied" : "Copy", systemImage: copied ? "checkmark" : "doc.on.doc")
+                            Text(copied ? "COPIED" : "COPY")
+                                .font(.bsBody(13, weight: .bold))
                                 .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(BSButtonStyle(background: .bsCard, shadowOffset: 4))
                         .accessibilityIdentifier("copy-summary-button")
                     }
                 }
@@ -404,19 +529,22 @@ private struct ParticipantEditorRow: View {
     var body: some View {
         HStack {
             TextField("Name", text: $participant.name)
-                .textFieldStyle(.roundedBorder)
+                .font(.bsBody(14))
+                .padding(10)
+                .background(Color.bsCard)
+                .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
 
-            Button(role: .destructive) {
-                onDelete()
-            } label: {
-                Image(systemName: "trash")
+            Button(action: onDelete) {
+                Text("✕")
+                    .font(.bsBody(15, weight: .bold))
+                    .foregroundStyle(canDelete ? .white : Color.bsDisabledText)
+                    .frame(width: 44, height: 44)
+                    .background(canDelete ? Color.bsDanger : Color.bsDisabledFill)
+                    .overlay(Rectangle().stroke(canDelete ? Color.bsInk : Color.bsDisabledText, lineWidth: BSBorder.control))
             }
             .disabled(!canDelete)
             .accessibilityLabel("Remove \(participant.name)")
         }
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 
@@ -429,12 +557,18 @@ private struct ReceiptItemEditorRow: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 TextField("Item name", text: $item.normalizedName)
-                    .textFieldStyle(.roundedBorder)
+                    .font(.bsBody(14))
+                    .padding(10)
+                    .background(Color.bsCard)
+                    .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
 
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
+                Button(action: onDelete) {
+                    Text("✕")
+                        .font(.bsBody(15, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(Color.bsDanger)
+                        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.control))
                 }
                 .accessibilityLabel("Delete \(item.normalizedName)")
             }
@@ -453,9 +587,9 @@ private struct ReceiptItemEditorRow: View {
                 .pickerStyle(.menu)
             }
         }
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(10)
+        .background(Color.bsPaperSunken)
+        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.tag))
     }
 }
 
@@ -464,15 +598,16 @@ private struct SplitItemCard: View {
     var viewModel: AppFlowViewModel
 
     var body: some View {
-        SectionPanel(title: item.normalizedName) {
+        BSCard(title: item.normalizedName) {
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
                     Text(item.category.displayName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .font(.bsBody(11, weight: .bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.bsInkMuted)
                     Spacer()
                     Text(CurrencyFormatter.string(for: item.totalPrice, currencyCode: viewModel.draft.session.currencyCode))
-                        .font(.headline)
+                        .font(.bsMono(13))
                 }
 
                 HStack(spacing: 8) {
@@ -504,8 +639,9 @@ private struct SplitItemCard: View {
 
                 if !viewModel.draft.assignments.contains(where: { $0.receiptItemID == item.id }) {
                     Text("Unassigned")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.orange)
+                        .font(.bsBody(11, weight: .bold))
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.bsDanger)
                 }
             }
         }
@@ -520,37 +656,19 @@ private struct ParticipantAssignmentButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 6) {
-                if isSelected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .imageScale(.small)
-                }
-
-                Text(participant.name)
-            }
-            .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: 36)
+            Text(participant.name)
+                .font(.bsBody(12, weight: .bold))
+                .textCase(.uppercase)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .frame(minHeight: 36)
         }
         .buttonStyle(.plain)
-        .background(backgroundColor)
-        .foregroundStyle(isSelected ? Color.white : Color.primary)
-        .clipShape(Capsule())
-        .overlay {
-            Capsule()
-                .stroke(isSelected ? backgroundColor : Color(.separator), lineWidth: 1)
-        }
+        .foregroundStyle(isSelected ? Color.bsInk : Color.bsInkMuted)
+        .background(isSelected ? Color.bsAccent : Color.bsCard)
+        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.tag))
         .accessibilityIdentifier("assign-\(item.normalizedName)-\(participant.name)")
         .accessibilityValue(isSelected ? "Selected" : "Not selected")
-    }
-
-    private var backgroundColor: Color {
-        guard isSelected else {
-            return Color(.tertiarySystemGroupedBackground)
-        }
-
-        return item.assignmentMode == .shared ? .green : .blue
     }
 }
 
@@ -560,226 +678,51 @@ private struct AssignmentModeButton: View {
     let action: () -> Void
 
     var body: some View {
-        Button(title, action: action)
-            .font(.subheadline.weight(.semibold))
-            .buttonStyle(.bordered)
-            .tint(isSelected ? .blue : .secondary)
+        Button(action: action) {
+            Text(title.uppercased())
+                .font(.bsBody(11, weight: .bold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(isSelected ? Color.bsInk : Color.bsInkMuted)
+        .background(isSelected ? Color.bsAccent : Color.bsCard)
+        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.tag))
     }
 }
 
-private struct SettlementLineRow: View {
+private struct SettlementLineCard: View {
     let participant: Participant
     let line: SettlementLine
     let currencyCode: String
+    let isPayer: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(participant.name)
-                    .font(.headline)
+                    .font(.bsDisplay(14))
+                    .textCase(.uppercase)
                 Spacer()
                 Text(CurrencyFormatter.string(for: line.grandTotal, currencyCode: currencyCode))
-                    .font(.headline)
+                    .font(.bsDisplay(18))
             }
+            .foregroundStyle(Color.bsInk)
 
-            HStack {
-                Text("Items \(CurrencyFormatter.string(for: line.itemSubtotal, currencyCode: currencyCode))")
-                Spacer()
-                Text("Tax \(CurrencyFormatter.string(for: line.taxShare, currencyCode: currencyCode))")
-                Spacer()
-                Text("Tip \(CurrencyFormatter.string(for: line.tipShare, currencyCode: currencyCode))")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        .padding(12)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private struct DecimalTextField: View {
-    let title: String
-    @Binding var value: Decimal
-
-    var body: some View {
-        TextField(title, text: Binding<String>(
-            get: { CurrencyFormatter.editableString(for: value) },
-            set: { newValue in
-                if let decimal = CurrencyFormatter.decimal(from: newValue) {
-                    value = decimal
-                }
-            }
-        ))
-        .keyboardType(.numbersAndPunctuation)
-        .textFieldStyle(.roundedBorder)
-    }
-}
-
-private struct FlowActionLabel: View {
-    let title: String
-    let subtitle: String
-    let systemImage: String
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: systemImage)
-                .font(.title2)
-                .foregroundStyle(.blue)
-                .frame(width: 36, height: 36)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text(subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-
-            Spacer(minLength: 12)
-
-            Image(systemName: "chevron.right")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(16)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color(.separator), lineWidth: 0.5)
-        }
-    }
-}
-
-private struct FlowStepRow: View {
-    let step: AppFlowStep
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: step.systemImage)
-                .font(.headline)
-                .foregroundStyle(.blue)
-                .frame(width: 28, height: 28)
-            Text(step.title)
-                .font(.body)
-            Spacer()
-            Text("\(step.stepNumber ?? 0)")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 28)
-                .background(Color(.secondarySystemGroupedBackground))
-                .clipShape(Circle())
+            Text(
+                "ITEMS \(CurrencyFormatter.string(for: line.itemSubtotal, currencyCode: currencyCode)) · " +
+                "TAX \(CurrencyFormatter.string(for: line.taxShare, currencyCode: currencyCode)) · " +
+                "TIP \(CurrencyFormatter.string(for: line.tipShare, currencyCode: currencyCode))"
+            )
+            .font(.bsBody(11, weight: .bold))
+            .textCase(.uppercase)
+            .foregroundStyle(Color.bsInkMuted)
         }
         .padding(14)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-}
-
-private struct FlowStepHeader: View {
-    let step: AppFlowStep
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Image(systemName: step.systemImage)
-                    .foregroundStyle(.blue)
-                    .frame(width: 32, height: 32)
-                    .background(Color.blue.opacity(0.12))
-                    .clipShape(Circle())
-                Text(step.title)
-                    .font(.title2.bold())
-            }
-
-            ProgressView(value: Double(step.stepNumber ?? 1), total: Double(AppFlowStep.navigableSteps.count))
-                .tint(.blue)
-
-            Text("Step \(step.stepNumber ?? 1) of \(AppFlowStep.navigableSteps.count)")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-        }
-    }
-}
-
-private struct FlowFooter: View {
-    let step: AppFlowStep
-    let viewModel: AppFlowViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let validationMessage = viewModel.validationMessage {
-                StatusMessage(text: validationMessage, style: .warning)
-            }
-
-            HStack(spacing: 12) {
-                Button {
-                    viewModel.moveBack()
-                } label: {
-                    Label("Back", systemImage: "chevron.left")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-
-                Button {
-                    viewModel.advance()
-                } label: {
-                    Label(step.next == nil ? "Done" : "Next", systemImage: step.next == nil ? "checkmark" : "chevron.right")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .accessibilityIdentifier("flow-next-button")
-            }
-            .controlSize(.large)
-        }
-    }
-}
-
-private struct SectionPanel<Content: View>: View {
-    let title: String
-    let content: () -> Content
-
-    init(title: String, @ViewBuilder content: @escaping () -> Content) {
-        self.title = title
-        self.content = content
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.headline)
-            content()
-        }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color(.separator), lineWidth: 0.5)
-        }
-    }
-}
-
-private enum StatusMessageStyle {
-    case neutral
-    case warning
-}
-
-private struct StatusMessage: View {
-    let text: String
-    let style: StatusMessageStyle
-
-    var body: some View {
-        Label(text, systemImage: style == .warning ? "exclamationmark.triangle.fill" : "info.circle.fill")
-            .font(.subheadline)
-            .foregroundStyle(style == .warning ? .orange : .secondary)
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(isPayer ? Color.bsAccent : Color.bsCard)
+        .overlay(Rectangle().stroke(Color.bsInk, lineWidth: BSBorder.card))
+        .bsShadow(offset: 6)
     }
 }
 
