@@ -61,12 +61,9 @@ struct AppFlowViewModelTests {
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
+        viewModel.connect(itemID: padThai.id, to: you.id)
+        viewModel.connect(itemID: greenCurry.id, to: you.id)
+        viewModel.connect(itemID: thaiIcedTea.id, to: alex.id)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .settlement)
@@ -81,10 +78,11 @@ struct AppFlowViewModelTests {
         #expect(viewModel.shareText.contains("WHO OWES WHAT"))
     }
 
-    @Test func participantSelectionUsesLatestAssignmentMode() {
+    @Test func connectionModelReflectsLatestConnections() {
         let viewModel = AppFlowViewModel()
         viewModel.configure(repository: InMemorySessionRepository())
         viewModel.startNewSplit()
+        viewModel.addParticipant()
 
         let item = ReceiptItem(
             rawText: "Soup 12.00",
@@ -97,20 +95,17 @@ struct AppFlowViewModelTests {
         let you = viewModel.draft.participants[0]
         let alex = viewModel.draft.participants[1]
 
-        viewModel.setAssignmentMode(itemID: item.id, mode: .assigned)
-        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: you.id)
+        viewModel.connect(itemID: item.id, to: you.id)
 
         #expect(viewModel.draft.items[0].assignmentMode == .assigned)
-        #expect(viewModel.isParticipant(you.id, assignedTo: item.id))
-        #expect(!viewModel.isParticipant(alex.id, assignedTo: item.id))
+        #expect(viewModel.isConnected(you.id, to: item.id))
+        #expect(!viewModel.isConnected(alex.id, to: item.id))
 
-        viewModel.setAssignmentMode(itemID: item.id, mode: .split)
-        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: you.id)
-        viewModel.selectParticipantForAssignment(itemID: item.id, participantID: alex.id)
+        viewModel.connect(itemID: item.id, to: alex.id)
 
         #expect(viewModel.draft.items[0].assignmentMode == .split)
-        #expect(viewModel.isParticipant(you.id, assignedTo: item.id))
-        #expect(viewModel.isParticipant(alex.id, assignedTo: item.id))
+        #expect(viewModel.isConnected(you.id, to: item.id))
+        #expect(viewModel.isConnected(alex.id, to: item.id))
     }
 
     @Test func resumeReturnsToMostRecentFlowStep() {
@@ -145,12 +140,9 @@ struct AppFlowViewModelTests {
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
+        viewModel.connect(itemID: padThai.id, to: you.id)
+        viewModel.connect(itemID: greenCurry.id, to: you.id)
+        viewModel.connect(itemID: thaiIcedTea.id, to: alex.id)
 
         let itemIDsBeforeBack = Set(viewModel.draft.items.map(\.id))
         let assignmentsBeforeBack = viewModel.draft.assignments
@@ -239,12 +231,9 @@ struct AppFlowViewModelTests {
         let you = viewModel.draft.participants.first { $0.name == "You" }!
         let alex = viewModel.draft.participants.first { $0.name == "Alex" }!
 
-        viewModel.setAssignmentMode(itemID: padThai.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: padThai.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: greenCurry.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: greenCurry.id, participantID: you.id)
-        viewModel.setAssignmentMode(itemID: thaiIcedTea.id, mode: .assigned)
-        viewModel.toggleAssignment(itemID: thaiIcedTea.id, participantID: alex.id)
+        viewModel.connect(itemID: padThai.id, to: you.id)
+        viewModel.connect(itemID: greenCurry.id, to: you.id)
+        viewModel.connect(itemID: thaiIcedTea.id, to: alex.id)
 
         viewModel.advance()
         #expect(viewModel.currentStep == .settlement)
@@ -271,6 +260,193 @@ struct AppFlowViewModelTests {
         #expect(!viewModel.hasRecoverableSession)
         #expect(!viewModel.resumeSplit())
         #expect(repository.savedDraft == nil)
+    }
+
+    // MARK: - Split Board connection model
+
+    @Test func connectOnUnassignedItemCreatesSoleAssignment() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+
+        viewModel.connect(itemID: item.id, to: you.id)
+
+        #expect(viewModel.draft.assignments.count == 1)
+        #expect(viewModel.draft.assignments[0].shareRatio == 1)
+        #expect(viewModel.draft.items[0].assignmentMode == .assigned)
+    }
+
+    @Test func connectingSecondPersonProducesSplit() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+        viewModel.addParticipant()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+        let alex = viewModel.draft.participants[1]
+
+        viewModel.connect(itemID: item.id, to: you.id)
+        viewModel.connect(itemID: item.id, to: alex.id)
+
+        #expect(viewModel.draft.items[0].assignmentMode == .split)
+        #expect(viewModel.isConnected(you.id, to: item.id))
+        #expect(viewModel.isConnected(alex.id, to: item.id))
+    }
+
+    @Test func connectingSamePersonTwiceIsIdempotent() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+
+        viewModel.connect(itemID: item.id, to: you.id)
+        viewModel.connect(itemID: item.id, to: you.id)
+
+        #expect(viewModel.draft.assignments.count == 1)
+    }
+
+    @Test func connectingEveryParticipantIndividuallyReadsAsShared() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+
+        for participant in viewModel.draft.participants {
+            viewModel.connect(itemID: item.id, to: participant.id)
+        }
+
+        #expect(viewModel.draft.items[0].assignmentMode == .shared)
+    }
+
+    @Test func shareWithEveryoneAssignsOnePerParticipant() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+
+        viewModel.shareWithEveryone(itemID: item.id)
+
+        #expect(viewModel.draft.assignments.count == viewModel.draft.participants.count)
+        #expect(viewModel.draft.items[0].assignmentMode == .shared)
+    }
+
+    @Test func connectAfterSharedResetsToSoleOwner() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+        let alex = viewModel.draft.participants[1]
+
+        viewModel.shareWithEveryone(itemID: item.id)
+        viewModel.connect(itemID: item.id, to: you.id)
+
+        #expect(viewModel.draft.assignments.count == 1)
+        #expect(viewModel.isConnected(you.id, to: item.id))
+        #expect(!viewModel.isConnected(alex.id, to: item.id))
+        #expect(viewModel.draft.items[0].assignmentMode == .assigned)
+    }
+
+    @Test func clearConnectionsBlocksAdvanceWithCountMessage() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+        viewModel.advance()
+        viewModel.useSampleReceipt()
+        viewModel.advance()
+        viewModel.advance()
+        #expect(viewModel.currentStep == .splitBoard)
+
+        let padThai = viewModel.draft.items.first { $0.normalizedName == "Pad Thai" }!
+        viewModel.shareWithEveryone(itemID: padThai.id)
+        viewModel.clearConnections(itemID: padThai.id)
+
+        #expect(viewModel.draft.assignments.filter { $0.receiptItemID == padThai.id }.isEmpty)
+        #expect(viewModel.draft.items.first { $0.id == padThai.id }?.assignmentMode == .unassigned)
+
+        viewModel.advance()
+        #expect(viewModel.currentStep == .splitBoard)
+        let count = viewModel.unassignedItems.count
+        #expect(viewModel.validationMessage == "\(count) item\(count == 1 ? "" : "s") still need assignment.")
+    }
+
+    @Test func removingParticipantRecomputesAffectedItemModes() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+        let alex = viewModel.draft.participants[1]
+
+        viewModel.addParticipant()
+        #expect(viewModel.draft.participants.count == 3)
+
+        viewModel.connect(itemID: item.id, to: you.id)
+        viewModel.connect(itemID: item.id, to: alex.id)
+        #expect(viewModel.draft.items[0].assignmentMode == .split)
+
+        viewModel.removeParticipant(id: alex.id)
+
+        #expect(viewModel.draft.items[0].assignmentMode == .assigned)
+        #expect(viewModel.isConnected(you.id, to: item.id))
+    }
+
+    @Test func connectionCaptionDescribesGroupSize() {
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: InMemorySessionRepository())
+        viewModel.startNewSplit()
+        viewModel.addParticipant()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+        let alex = viewModel.draft.participants[1]
+
+        viewModel.connect(itemID: item.id, to: you.id)
+        #expect(viewModel.connectionCaption(for: item.id) == "You")
+
+        viewModel.connect(itemID: item.id, to: alex.id)
+        #expect(viewModel.connectionCaption(for: item.id) == "You + Alex · Split ½ each")
+
+        viewModel.shareWithEveryone(itemID: item.id)
+        #expect(viewModel.connectionCaption(for: item.id) == nil)
+    }
+
+    @Test func eachConnectionIntentPersistsDraft() {
+        let repository = InMemorySessionRepository()
+        let viewModel = AppFlowViewModel()
+        viewModel.configure(repository: repository)
+        viewModel.startNewSplit()
+
+        let item = ReceiptItem(rawText: "Soup 12.00", normalizedName: "Soup", unitPrice: decimal("12.00"), category: .main)
+        viewModel.draft.items = [item]
+        let you = viewModel.draft.participants[0]
+
+        viewModel.connect(itemID: item.id, to: you.id)
+        #expect(repository.savedDraft?.assignments.count == 1)
+
+        viewModel.shareWithEveryone(itemID: item.id)
+        #expect(repository.savedDraft?.assignments.count == viewModel.draft.participants.count)
+
+        viewModel.clearConnections(itemID: item.id)
+        #expect(repository.savedDraft?.assignments.isEmpty == true)
     }
 }
 

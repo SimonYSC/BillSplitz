@@ -25,7 +25,8 @@ final class BillSplitzUITests: XCTestCase {
     @MainActor
     func testCompletesSimulatorMVPFlowWithSampleReceipt() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--reset-draft"]
+        app.launchArguments = ["--reset-draft", "--uitest-reduce-motion"]
+        app.launchArguments += ["-hasSeenSplitBoardCoachMark", "YES"]
         app.launch()
 
         app.buttons["start-new-split-button"].tap()
@@ -57,33 +58,75 @@ final class BillSplitzUITests: XCTestCase {
         XCTAssertTrue(app.buttons["start-new-split-button"].waitForExistence(timeout: 2))
     }
 
-    private func assignItem(_ itemName: String, to participantName: String, in app: XCUIApplication) {
-        let modeButton = app.buttons["mode-\(itemName)-assigned"]
-        scrollIntoView(modeButton, in: app)
-        modeButton.tap()
+    @MainActor
+    func testCoachMarkAppearsOnFirstAssignModeEntry() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--reset-draft", "--uitest-reduce-motion"]
+        app.launch()
 
-        let assignButton = app.buttons["assign-\(itemName)-\(participantName)"]
-        scrollIntoView(assignButton, in: app)
-        assignButton.tap()
-        waitForSelected(assignButton)
+        app.buttons["start-new-split-button"].tap()
+        app.buttons["flow-next-button"].tap()
+        app.buttons["use-sample-receipt-button"].tap()
+        app.buttons["flow-next-button"].tap()
+        app.buttons["flow-next-button"].tap()
+        XCTAssertTrue(app.staticTexts["screen-title-splitBoard"].waitForExistence(timeout: 2))
+
+        let row = app.otherElements["split-item-row-Pad Thai"]
+        scrollIntoView(row, in: app)
+        row.press(forDuration: 0.8)
+
+        let coachMark = app.buttons["coach-mark-got-it"]
+        XCTAssertTrue(coachMark.waitForExistence(timeout: 2))
+
+        coachMark.tap()
+        XCTAssertFalse(coachMark.exists)
     }
 
+    private func assignItem(_ itemName: String, to participantName: String, in app: XCUIApplication) {
+        // Coordinate presses: SwiftUI accessibility containers flip isHittable unpredictably,
+        // and element presses refuse on it; coordinates bypass that gate.
+        let row = app.otherElements["split-item-row-\(itemName)"]
+        scrollIntoView(row, in: app)
+        let rowCenter = row.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        rowCenter.press(forDuration: 0.8) // enter assign mode, release
+
+        let bubble = app.descendants(matching: .any)["assign-bubble-\(participantName)"].firstMatch
+        XCTAssertTrue(bubble.waitForExistence(timeout: 2), "assign-bubble-\(participantName) missing after long press")
+        // Tap-to-assign is CI's deterministic path; the drag gesture is verified on-device.
+        bubble.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35)).tap()
+
+        // exit assign mode by tapping the scrim (near the top, clear of bubbles), then assert the badge
+        let scrim = app.descendants(matching: .any)["assign-scrim"].firstMatch
+        XCTAssertTrue(scrim.waitForExistence(timeout: 2), "assign-scrim missing after drop")
+        scrim.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+        let badge = app.descendants(matching: .any)["split-item-badge-\(itemName)"].firstMatch
+        waitForConnectedName(badge, participantName)
+    }
+
+    // Frame-based visibility: SwiftUI accessibility containers report isHittable=false even
+    // when fully on screen, but coordinate presses on their frames land fine.
     private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
+        XCTAssertTrue(element.waitForExistence(timeout: 2), "\(element.identifier) not found")
+        let visibleBand = app.frame.insetBy(dx: 0, dy: 160)
         var attempts = 0
-        while !element.isHittable && attempts < 6 {
+        while !visibleBand.contains(element.frame) && attempts < 6 {
             app.swipeUp(velocity: .slow)
             attempts += 1
         }
-        XCTAssertTrue(element.isHittable, "\(element.identifier) never became hittable after scrolling")
+        XCTAssertTrue(
+            visibleBand.intersects(element.frame),
+            "\(element.identifier) never scrolled into the visible band"
+        )
     }
 
-    private func waitForSelected(
+    private func waitForConnectedName(
         _ element: XCUIElement,
+        _ participantName: String,
         file: StaticString = #filePath,
         line: UInt = #line
     ) {
         // ==[c]: the Tab reskin's textCase environment uppercases accessibility values on iOS 26.
-        let predicate = NSPredicate(format: "value ==[c] %@", "Selected")
+        let predicate = NSPredicate(format: "value CONTAINS[c] %@", participantName)
         expectation(for: predicate, evaluatedWith: element)
         waitForExpectations(timeout: 2)
     }

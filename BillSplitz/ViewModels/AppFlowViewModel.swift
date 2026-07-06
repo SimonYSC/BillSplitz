@@ -316,8 +316,14 @@ final class AppFlowViewModel {
             return
         }
 
+        let affectedItemIDs = Set(draft.assignments.filter { $0.participantID == id }.map(\.receiptItemID))
+
         draft.participants.removeAll { $0.id == id }
         draft.assignments.removeAll { $0.participantID == id }
+
+        for itemID in affectedItemIDs {
+            recomputeAssignmentMode(for: itemID)
+        }
 
         if draft.payerID == id {
             draft.payerID = draft.participants.first?.id
@@ -357,73 +363,89 @@ final class AppFlowViewModel {
         persistDraft()
     }
 
-    func setAssignmentMode(itemID: UUID, mode: ReceiptItemAssignmentMode) {
-        guard let index = draft.items.firstIndex(where: { $0.id == itemID }) else {
+    func connect(itemID: UUID, to participantID: UUID) {
+        let connectedParticipantIDs = Set(draft.assignments.filter { $0.receiptItemID == itemID }.map(\.participantID))
+
+        // A drop on one person after a mistaken All-drop must give sole ownership,
+        // not add a third connection on top of full coverage.
+        if !draft.participants.isEmpty, connectedParticipantIDs.count == draft.participants.count {
+            draft.assignments.removeAll { $0.receiptItemID == itemID }
+        } else if connectedParticipantIDs.contains(participantID) {
+            recomputeAssignmentMode(for: itemID)
+            validationMessage = nil
+            persistDraft()
             return
         }
 
-        draft.items[index].assignmentMode = mode
+        draft.assignments.append(ItemAssignment(receiptItemID: itemID, participantID: participantID, shareRatio: 1))
+        recomputeAssignmentMode(for: itemID)
+        validationMessage = nil
+        persistDraft()
+    }
+
+    func shareWithEveryone(itemID: UUID) {
         draft.assignments.removeAll { $0.receiptItemID == itemID }
-
-        if mode == .shared {
-            draft.assignments += draft.participants.map {
-                ItemAssignment(receiptItemID: itemID, participantID: $0.id, shareRatio: 1)
-            }
+        draft.assignments += draft.participants.map {
+            ItemAssignment(receiptItemID: itemID, participantID: $0.id, shareRatio: 1)
         }
-
+        recomputeAssignmentMode(for: itemID)
         validationMessage = nil
         persistDraft()
     }
 
-    func toggleAssignment(itemID: UUID, participantID: UUID) {
-        selectParticipantForAssignment(itemID: itemID, participantID: participantID)
-    }
-
-    func selectParticipantForAssignment(itemID: UUID, participantID: UUID) {
-        guard let index = draft.items.firstIndex(where: { $0.id == itemID }) else {
-            return
-        }
-
-        switch draft.items[index].assignmentMode {
-        case .shared:
-            draft.items[index].assignmentMode = .split
-            draft.assignments.removeAll { $0.receiptItemID == itemID }
-            draft.assignments.append(
-                ItemAssignment(receiptItemID: itemID, participantID: participantID, shareRatio: 1)
-            )
-        case .assigned:
-            draft.assignments.removeAll { $0.receiptItemID == itemID }
-            draft.assignments.append(
-                ItemAssignment(receiptItemID: itemID, participantID: participantID, shareRatio: 1)
-            )
-        case .split, .unassigned:
-            if draft.items[index].assignmentMode == .unassigned {
-                draft.items[index].assignmentMode = .assigned
-            }
-
-            if let existingIndex = draft.assignments.firstIndex(where: {
-                $0.receiptItemID == itemID && $0.participantID == participantID
-            }) {
-                draft.assignments.remove(at: existingIndex)
-            } else {
-                draft.assignments.append(
-                    ItemAssignment(receiptItemID: itemID, participantID: participantID, shareRatio: 1)
-                )
-            }
-        }
-
+    func clearConnections(itemID: UUID) {
+        draft.assignments.removeAll { $0.receiptItemID == itemID }
+        recomputeAssignmentMode(for: itemID)
         validationMessage = nil
         persistDraft()
     }
 
-    func isParticipant(_ participantID: UUID, assignedTo itemID: UUID) -> Bool {
+    func isConnected(_ participantID: UUID, to itemID: UUID) -> Bool {
         draft.assignments.contains {
             $0.receiptItemID == itemID && $0.participantID == participantID
         }
     }
 
+    func connectionCaption(for itemID: UUID) -> String? {
+        let connectedIDs = draft.assignments.filter { $0.receiptItemID == itemID }.map(\.participantID)
+        guard !connectedIDs.isEmpty, connectedIDs.count != draft.participants.count else {
+            return nil
+        }
+
+        let connectedIDSet = Set(connectedIDs)
+        let names = draft.participants.filter { connectedIDSet.contains($0.id) }.map(\.name)
+
+        guard names.count > 1 else {
+            return names.first
+        }
+
+        let splitSuffix = names.count == 2 ? " · Split ½ each" : " · Split evenly"
+        return names.joined(separator: " + ") + splitSuffix
+    }
+
     func settlementLine(for participantID: UUID, in lines: [SettlementLine]) -> SettlementLine? {
         lines.first { $0.participantID == participantID }
+    }
+
+    // Full coverage IS shared: connecting every participant one-by-one reads identically
+    // to shareWithEveryone, because assignments are the single source of truth for mode.
+    private func recomputeAssignmentMode(for itemID: UUID) {
+        guard let index = draft.items.firstIndex(where: { $0.id == itemID }) else {
+            return
+        }
+
+        let connectedCount = Set(draft.assignments.filter { $0.receiptItemID == itemID }.map(\.participantID)).count
+
+        switch connectedCount {
+        case 0:
+            draft.items[index].assignmentMode = .unassigned
+        case 1:
+            draft.items[index].assignmentMode = .assigned
+        case draft.participants.count:
+            draft.items[index].assignmentMode = .shared
+        default:
+            draft.items[index].assignmentMode = .split
+        }
     }
 
     private func show(_ step: AppFlowStep) {
@@ -475,7 +497,7 @@ final class AppFlowViewModel {
             }
         case .splitBoard:
             if !unassignedItems.isEmpty {
-                validationMessage = "Assign every item before settlement."
+                validationMessage = "\(unassignedItems.count) item\(unassignedItems.count == 1 ? "" : "s") still need assignment."
                 return false
             }
         case .settlement:
