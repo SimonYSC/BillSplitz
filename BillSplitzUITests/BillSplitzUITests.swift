@@ -42,16 +42,21 @@ final class BillSplitzUITests: XCTestCase {
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Split Board"].waitForExistence(timeout: 2))
 
-        app.buttons["mode-Spicy tuna roll-assigned"].tap()
-        let spicyTunaYou = app.buttons["assign-Spicy tuna roll-You"]
-        spicyTunaYou.tap()
-        waitForSelected(spicyTunaYou)
+        app.buttons["mode-Pad Thai-assigned"].tap()
+        let padThaiYou = app.buttons["assign-Pad Thai-You"]
+        padThaiYou.tap()
+        waitForSelected(padThaiYou)
 
         app.swipeUp()
-        app.buttons["mode-Green tea-split"].tap()
-        let greenTeaAlex = app.buttons["assign-Green tea-Alex"]
-        greenTeaAlex.tap()
-        waitForSelected(greenTeaAlex)
+        app.buttons["mode-Green Curry-assigned"].tap()
+        let greenCurryYou = app.buttons["assign-Green Curry-You"]
+        greenCurryYou.tap()
+        waitForSelected(greenCurryYou)
+
+        app.buttons["mode-Thai Iced Tea-assigned"].tap()
+        let thaiIcedTeaAlex = app.buttons["assign-Thai Iced Tea-Alex"]
+        thaiIcedTeaAlex.tap()
+        waitForSelected(thaiIcedTeaAlex)
 
         nextButton.tap()
         XCTAssertTrue(app.staticTexts["Settlement"].waitForExistence(timeout: 2))

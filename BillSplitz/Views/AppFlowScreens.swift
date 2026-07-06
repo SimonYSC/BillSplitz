@@ -116,12 +116,14 @@ private struct SessionSetupScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionPanel(title: "Session") {
-                VStack(alignment: .leading, spacing: 12) {
-                    TextField("Split title", text: $viewModel.draft.session.title)
-                        .textInputAutocapitalization(.words)
-                        .textFieldStyle(.roundedBorder)
-                        .accessibilityIdentifier("session-title-field")
+                TextField("Split title", text: $viewModel.draft.session.title)
+                    .textInputAutocapitalization(.words)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("session-title-field")
+            }
 
+            SectionPanel(title: "Payer") {
+                VStack(alignment: .leading, spacing: 12) {
                     Picker("Paid by", selection: Binding<UUID?>(
                         get: { viewModel.draft.payerID },
                         set: { viewModel.draft.payerID = $0 }
@@ -132,6 +134,29 @@ private struct SessionSetupScreen: View {
                     }
                     .pickerStyle(.menu)
                     .accessibilityIdentifier("payer-picker")
+
+                    Picker("Payment method", selection: Binding<PaymentMethodType>(
+                        get: { viewModel.draft.payerPaymentMethod ?? .venmo },
+                        set: { viewModel.draft.payerPaymentMethod = $0 }
+                    )) {
+                        ForEach(PaymentMethodType.allCases, id: \.self) { paymentType in
+                            Text(paymentType.displayName).tag(paymentType)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("payer-method-picker")
+
+                    TextField("Payment handle", text: Binding<String>(
+                        get: { viewModel.draft.payerPaymentHandle ?? "" },
+                        set: { viewModel.draft.payerPaymentHandle = $0.isEmpty ? nil : $0 }
+                    ))
+                    .textInputAutocapitalization(.never)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("payer-handle-field")
+
+                    Text("Covers the bill. Their payment details go in the shared summary so everyone knows where to send money.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -377,38 +402,17 @@ private struct ParticipantEditorRow: View {
     let onDelete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                TextField("Name", text: $participant.name)
-                    .textFieldStyle(.roundedBorder)
-
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .disabled(!canDelete)
-                .accessibilityLabel("Remove \(participant.name)")
-            }
-
-            HStack(spacing: 10) {
-                Picker("Payment", selection: Binding<PaymentMethodType>(
-                    get: { participant.paymentMethodType ?? .venmo },
-                    set: { participant.paymentMethodType = $0 }
-                )) {
-                    ForEach(PaymentMethodType.allCases, id: \.self) { paymentType in
-                        Text(paymentType.displayName).tag(paymentType)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                TextField("Payment handle", text: Binding<String>(
-                    get: { participant.paymentHandle ?? "" },
-                    set: { participant.paymentHandle = $0.isEmpty ? nil : $0 }
-                ))
-                .textInputAutocapitalization(.never)
+        HStack {
+            TextField("Name", text: $participant.name)
                 .textFieldStyle(.roundedBorder)
+
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Image(systemName: "trash")
             }
+            .disabled(!canDelete)
+            .accessibilityLabel("Remove \(participant.name)")
         }
         .padding(12)
         .background(Color(.secondarySystemGroupedBackground))

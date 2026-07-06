@@ -18,6 +18,8 @@ struct SplitDraft: Identifiable, Equatable, Codable {
     var updatedAt: Date
     var parsedAt: Date?
     var parsedReceiptText: String?
+    var payerPaymentMethod: PaymentMethodType?
+    var payerPaymentHandle: String?
 
     init(
         id: UUID = UUID(),
@@ -31,7 +33,9 @@ struct SplitDraft: Identifiable, Equatable, Codable {
         recoverableStep: AppFlowStep = .sessionSetup,
         updatedAt: Date = .now,
         parsedAt: Date? = nil,
-        parsedReceiptText: String? = nil
+        parsedReceiptText: String? = nil,
+        payerPaymentMethod: PaymentMethodType? = nil,
+        payerPaymentHandle: String? = nil
     ) {
         self.id = id
         self.session = session
@@ -45,16 +49,20 @@ struct SplitDraft: Identifiable, Equatable, Codable {
         self.updatedAt = updatedAt
         self.parsedAt = parsedAt
         self.parsedReceiptText = parsedReceiptText
+        self.payerPaymentMethod = payerPaymentMethod
+        self.payerPaymentHandle = payerPaymentHandle
     }
 
     static func blank() -> SplitDraft {
-        let payer = Participant(name: "You", paymentMethodType: .venmo, displayColor: "#2F80ED")
-        let guest = Participant(name: "Alex", displayColor: "#27AE60")
+        let payer = Participant(name: "You")
+        let guest = Participant(name: "Alex")
 
         return SplitDraft(
             session: SplitSession(title: "Dinner", status: .draft),
             payerID: payer.id,
-            participants: [payer, guest]
+            participants: [payer, guest],
+            payerPaymentMethod: .venmo,
+            payerPaymentHandle: nil
         )
     }
 

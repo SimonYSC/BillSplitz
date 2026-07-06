@@ -95,11 +95,11 @@ struct ReceiptParserService {
             return .drink
         }
 
-        if ["dessert", "cake", "mochi", "ice cream", "pie"].contains(where: lowercasedLabel.contains) {
+        if ["dessert", "cake", "mochi", "ice cream", "pie", "sticky rice"].contains(where: lowercasedLabel.contains) {
             return .dessert
         }
 
-        if ["appetizer", "starter", "gyoza", "edamame", "wings", "fries", "chips"].contains(where: lowercasedLabel.contains) {
+        if ["appetizer", "starter", "gyoza", "edamame", "wings", "fries", "chips", "spring roll"].contains(where: lowercasedLabel.contains) {
             return .appetizer
         }
 

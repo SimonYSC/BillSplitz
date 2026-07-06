@@ -13,20 +13,20 @@ struct BillSplitzTests {
     @Test func receiptParserExtractsItemsTaxAndTip() {
         let result = ReceiptParserService().parse(
             """
-            Gyoza 8.95
-            Spicy tuna roll 25.90
-            Green tea 4.50
-            Mochi dessert 7.50
-            Tax 3.97
-            Tip 8.43
-            Total 59.25
+            Spring Rolls 8.50
+            Pad Thai 16.50
+            Green Curry 17.00
+            Thai Iced Tea 5.50
+            Mango Sticky Rice 9.00
+            Tax 4.75
+            Tip 11.30
             """
         )
 
-        #expect(result.items.map(\.normalizedName) == ["Gyoza", "Spicy tuna roll", "Green tea", "Mochi dessert"])
-        #expect(result.items.map(\.category) == [.appetizer, .main, .drink, .dessert])
-        #expect(result.tax == decimal("3.97"))
-        #expect(result.tip == decimal("8.43"))
+        #expect(result.items.map(\.normalizedName) == ["Spring Rolls", "Pad Thai", "Green Curry", "Thai Iced Tea", "Mango Sticky Rice"])
+        #expect(result.items.map(\.category) == [.appetizer, .main, .main, .drink, .dessert])
+        #expect(result.tax == decimal("4.75"))
+        #expect(result.tip == decimal("11.30"))
     }
 
     @Test func defaultSplitPresetSharesAppetizersDessertsAndLeavesMainsAssignable() {
@@ -63,29 +63,43 @@ struct BillSplitzTests {
         #expect(try repository.loadActiveDraft() == nil)
     }
 
-    @Test func shareExportIncludesParticipantTotalsAndHandles() throws {
-        let alice = Participant(
+    @Test func shareExportMatchesFlowDocFormat() throws {
+        let you = Participant(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            name: "Alice",
-            paymentHandle: "@alice"
+            name: "You"
         )
-        let ben = Participant(
+        let maya = Participant(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
-            name: "Ben"
+            name: "Maya"
         )
-        let session = SplitSession(title: "Dinner", tax: decimal("1.00"), tip: decimal("2.00"))
-        let draft = SplitDraft(session: session, payerID: alice.id, participants: [alice, ben])
+        let jordan = Participant(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
+            name: "Jordan"
+        )
+        let session = SplitSession(title: "Thai Night — Basil House", tax: decimal("4.75"), tip: decimal("11.30"))
+        let draft = SplitDraft(
+            session: session,
+            payerID: you.id,
+            participants: [you, maya, jordan],
+            payerPaymentMethod: .venmo,
+            payerPaymentHandle: "@sam-rivera"
+        )
         let lines = [
-            SettlementLine(sessionID: session.id, participantID: alice.id, itemSubtotal: decimal("10.00"), taxShare: decimal("0.50"), tipShare: decimal("1.00")),
-            SettlementLine(sessionID: session.id, participantID: ben.id, itemSubtotal: decimal("10.00"), taxShare: decimal("0.50"), tipShare: decimal("1.00"))
+            SettlementLine(sessionID: session.id, participantID: you.id, itemSubtotal: decimal("30.84"), taxShare: decimal("2.60"), tipShare: decimal("6.16")),
+            SettlementLine(sessionID: session.id, participantID: maya.id, itemSubtotal: decimal("14.33"), taxShare: decimal("1.20"), tipShare: decimal("2.87")),
+            SettlementLine(sessionID: session.id, participantID: jordan.id, itemSubtotal: decimal("11.33"), taxShare: decimal("0.95"), tipShare: decimal("2.27"))
         ]
 
         let summary = ShareExportService().plainTextSummary(draft: draft, settlementLines: lines)
 
-        #expect(summary.contains("Dinner"))
-        #expect(summary.contains("Paid by Alice"))
-        #expect(summary.contains("Alice: $11.50 (@alice)"))
-        #expect(summary.contains("Ben: $11.50"))
+        #expect(summary.contains("THAI NIGHT — BASIL HOUSE"))
+        #expect(summary.contains("PAID BY YOU · TOTAL"))
+        #expect(summary.contains("WHO OWES WHAT"))
+        #expect(summary.contains("YOU ............"))
+        #expect(summary.contains("PAY YOU VIA VENMO"))
+        #expect(summary.contains("@sam-rivera"))
+        #expect(summary.contains("— BILLSPLITZ"))
+        #expect(summary.components(separatedBy: "@").count - 1 == 1)
     }
 
     @Test func splitItemRoundingReconcilesToItemTotal() throws {
@@ -178,6 +192,97 @@ struct BillSplitzTests {
         #expect(lines.map(\.tipShare).reduce(0, +) == session.tip)
     }
 
+    @Test func flowDocSampleSettlesToComputedTotals() throws {
+        let you = Participant(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, name: "You")
+        let maya = Participant(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, name: "Maya")
+        let jordan = Participant(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, name: "Jordan")
+        let participants = [you, maya, jordan]
+
+        let springRolls = ReceiptItem(
+            id: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!,
+            rawText: "Spring Rolls 8.50",
+            normalizedName: "Spring Rolls",
+            unitPrice: decimal("8.50"),
+            category: .appetizer,
+            assignmentMode: .shared
+        )
+        let padThai = ReceiptItem(
+            id: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!,
+            rawText: "Pad Thai 16.50",
+            normalizedName: "Pad Thai",
+            unitPrice: decimal("16.50"),
+            category: .main,
+            assignmentMode: .assigned
+        )
+        let greenCurry = ReceiptItem(
+            id: UUID(uuidString: "10000000-0000-0000-0000-000000000003")!,
+            rawText: "Green Curry 17.00",
+            normalizedName: "Green Curry",
+            unitPrice: decimal("17.00"),
+            category: .main,
+            assignmentMode: .split
+        )
+        let thaiIcedTea = ReceiptItem(
+            id: UUID(uuidString: "10000000-0000-0000-0000-000000000004")!,
+            rawText: "Thai Iced Tea 5.50",
+            normalizedName: "Thai Iced Tea",
+            unitPrice: decimal("5.50"),
+            category: .drink,
+            assignmentMode: .assigned
+        )
+        let mangoStickyRice = ReceiptItem(
+            id: UUID(uuidString: "10000000-0000-0000-0000-000000000005")!,
+            rawText: "Mango Sticky Rice 9.00",
+            normalizedName: "Mango Sticky Rice",
+            unitPrice: decimal("9.00"),
+            category: .dessert,
+            assignmentMode: .shared
+        )
+        let items = [springRolls, padThai, greenCurry, thaiIcedTea, mangoStickyRice]
+
+        let assignments = [
+            ItemAssignment(receiptItemID: springRolls.id, participantID: you.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: springRolls.id, participantID: maya.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: springRolls.id, participantID: jordan.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: padThai.id, participantID: you.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: greenCurry.id, participantID: you.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: greenCurry.id, participantID: maya.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: thaiIcedTea.id, participantID: jordan.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: mangoStickyRice.id, participantID: you.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: mangoStickyRice.id, participantID: maya.id, shareRatio: 1),
+            ItemAssignment(receiptItemID: mangoStickyRice.id, participantID: jordan.id, shareRatio: 1)
+        ]
+
+        let session = SplitSession(title: "Thai Night — Basil House", tax: decimal("4.75"), tip: decimal("11.30"))
+        let lines = try SettlementCalculator().calculate(
+            session: session,
+            participants: participants,
+            items: items,
+            assignments: assignments
+        )
+
+        let youLine = try #require(lines.first { $0.participantID == you.id })
+        let mayaLine = try #require(lines.first { $0.participantID == maya.id })
+        let jordanLine = try #require(lines.first { $0.participantID == jordan.id })
+
+        #expect(youLine.itemSubtotal == decimal("30.84"))
+        #expect(youLine.taxShare == decimal("2.60"))
+        #expect(youLine.tipShare == decimal("6.16"))
+        #expect(youLine.grandTotal == decimal("39.60"))
+
+        #expect(mayaLine.itemSubtotal == decimal("14.33"))
+        #expect(mayaLine.taxShare == decimal("1.20"))
+        #expect(mayaLine.tipShare == decimal("2.87"))
+        #expect(mayaLine.grandTotal == decimal("18.40"))
+
+        #expect(jordanLine.itemSubtotal == decimal("11.33"))
+        #expect(jordanLine.taxShare == decimal("0.95"))
+        #expect(jordanLine.tipShare == decimal("2.27"))
+        #expect(jordanLine.grandTotal == decimal("14.55"))
+
+        #expect(lines.map(\.grandTotal).reduce(0, +) == decimal("72.55"))
+    }
+
     @Test func editableStringRoundTripsThroughDecimalParsing() {
         let values = [decimal("3.97"), decimal("1234.56"), decimal("0.05")]
 
@@ -193,6 +298,36 @@ struct BillSplitzTests {
 
     @Test func decimalFromToleratesDollarSignAndGroupingCommas() {
         #expect(CurrencyFormatter.decimal(from: "$1,234.56") == decimal("1234.56"))
+    }
+
+    @Test func v1DraftJSONStillDecodes() throws {
+        let draft = SplitDraft.blank()
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+
+        let payload = try encoder.encode(draft)
+        let object = try JSONSerialization.jsonObject(with: payload) as! [String: Any]
+        var v1Object = object
+        var v1Participants: [[String: Any]] = []
+
+        for (index, var participantObject) in (object["participants"] as! [[String: Any]]).enumerated() {
+            participantObject["displayColor"] = "#2F80ED"
+            if index == 0 {
+                participantObject["paymentMethodType"] = "venmo"
+                participantObject["paymentHandle"] = "@old"
+            }
+            v1Participants.append(participantObject)
+        }
+
+        v1Object["participants"] = v1Participants
+        v1Object.removeValue(forKey: "payerPaymentMethod")
+        v1Object.removeValue(forKey: "payerPaymentHandle")
+
+        let v1Payload = try JSONSerialization.data(withJSONObject: v1Object)
+        let decodedDraft = try decoder.decode(SplitDraft.self, from: v1Payload)
+
+        #expect(decodedDraft.payerPaymentMethod == nil)
+        #expect(decodedDraft.payerPaymentHandle == nil)
     }
 
     @Test func unassignedItemsFailCalculation() throws {
