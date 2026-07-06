@@ -17,6 +17,7 @@ struct ContentView: View {
                     AppFlowStepView(step: step, viewModel: viewModel)
                 }
         }
+        .background(Color.bsPaper)
         .task {
             let repository = UserDefaultsSessionRepository()
             if ProcessInfo.processInfo.arguments.contains("--reset-draft") {
